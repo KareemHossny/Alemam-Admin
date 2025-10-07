@@ -20,8 +20,16 @@ const UpdateProject = () => {
   useEffect(() => {
     const fetchProjectData = async () => {
       try {
-        const response = await adminAPI.getProjects();
-        const project = response.data.find(p => p._id === projectId);
+        console.log('Fetching project with ID:', projectId);
+        
+        if (!projectId) {
+          setMessage('Project ID is missing');
+          setFetchLoading(false);
+          return;
+        }
+
+        const response = await adminAPI.getProjectById(projectId);
+        const project = response.data;
         
         if (project) {
           setFormData({
@@ -40,6 +48,7 @@ const UpdateProject = () => {
         setFetchLoading(false);
       }
     };
+
     const fetchUsers = async () => {
       try {
         const response = await adminAPI.getUsers();
@@ -48,10 +57,10 @@ const UpdateProject = () => {
         console.error('Error fetching users:', error);
       }
     };
+
     fetchProjectData();
     fetchUsers();
   }, [projectId]);
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();

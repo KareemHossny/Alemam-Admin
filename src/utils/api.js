@@ -47,6 +47,7 @@ export const adminAPI = {
   // Projects
   createProject: (projectData) => api.post('/admin/projects', projectData),
   getProjects: () => api.get('/admin/projects'),
+  getProjectById: (projectId) => api.get(`/admin/projects/${projectId}`), // الدالة الجديدة
   updateProject: (projectId, projectData) => api.put(`/admin/projects/${projectId}`, projectData),
   deleteProject: (projectId) => api.delete(`/admin/projects/${projectId}`),
   
