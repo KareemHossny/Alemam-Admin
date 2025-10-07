@@ -53,7 +53,7 @@ const TasksManagement = () => {
     };
 
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyles[status]}`}>
+      <span className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs font-semibold ${statusStyles[status]}`}>
         {statusText[status]}
       </span>
     );
@@ -131,92 +131,92 @@ const TasksManagement = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-12">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600">Loading all tasks...</p>
+      <div className="flex justify-center items-center py-8 sm:py-12">
+        <div className="flex flex-col items-center space-y-3 sm:space-y-4">
+          <div className="w-8 h-8 sm:w-12 sm:h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600 text-sm sm:text-base">Loading all tasks...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Tasks Management</h1>
-          <p className="text-gray-600">View and monitor all tasks across all projects</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Tasks Management</h1>
+          <p className="text-gray-600 text-sm sm:text-base">View and monitor all tasks across all projects</p>
         </div>
-        <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center text-white shadow-lg">
-          <FiEye className="w-6 h-6" />
+        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg flex-shrink-0 self-end sm:self-auto">
+          <FiEye className="w-5 h-5 sm:w-6 sm:h-6" />
         </div>
       </div>
 
       {/* Filters and Tabs */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-gray-200/50 p-6 mb-8">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 p-4 sm:p-6 mb-6 sm:mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           {/* Tabs */}
-          <div className="flex space-x-4">
+          <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0">
             <button
               onClick={() => setActiveTab('daily')}
-              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 ${
+              className={`px-4 py-3 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center ${
                 activeTab === 'daily'
                   ? 'bg-blue-600 text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <FiCalendar className="w-4 h-4 inline mr-2" />
+              <FiCalendar className="w-4 h-4 mr-2" />
               Daily Tasks ({tasks.daily.length})
             </button>
             <button
               onClick={() => setActiveTab('monthly')}
-              className={`px-6 py-3 rounded-2xl font-semibold transition-all duration-300 ${
+              className={`px-4 py-3 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl font-semibold transition-all duration-300 flex items-center justify-center ${
                 activeTab === 'monthly'
                   ? 'bg-blue-600 text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              <FiCalendar className="w-4 h-4 inline mr-2" />
+              <FiCalendar className="w-4 h-4 mr-2" />
               Monthly Tasks ({tasks.monthly.length})
             </button>
           </div>
 
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             {/* Date Filter */}
-            <div className="relative group">
+            <div className="relative group flex-1">
               <input
                 type={activeTab === 'daily' ? 'date' : 'month'}
                 value={dateFilter[activeTab]}
                 onChange={(e) => handleDateFilterChange(e.target.value)}
-                className="px-4 py-3 pl-10 border-2 border-gray-200 rounded-2xl bg-white text-gray-800 focus:border-blue-500 focus:ring-0 w-full"
+                className="w-full px-4 py-3 pl-10 border-2 border-gray-200 rounded-xl sm:rounded-2xl bg-white text-gray-800 focus:border-blue-500 focus:ring-0 text-sm sm:text-base"
                 placeholder={activeTab === 'daily' ? 'Select date' : 'Select month'}
               />
-              <FiCalendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <FiCalendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
             </div>
 
             {/* Status Filter */}
-            <div className="relative group">
+            <div className="relative group flex-1">
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                className="px-4 py-3 pl-10 border-2 border-gray-200 rounded-2xl bg-white text-gray-800 focus:border-blue-500 focus:ring-0 appearance-none"
+                className="w-full px-4 py-3 pl-10 border-2 border-gray-200 rounded-xl sm:rounded-2xl bg-white text-gray-800 focus:border-blue-500 focus:ring-0 appearance-none text-sm sm:text-base"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending</option>
                 <option value="done">Approved</option>
                 <option value="failed">Rejected</option>
               </select>
-              <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
             </div>
 
             {/* Project Filter */}
-            <div className="relative group">
+            <div className="relative group flex-1">
               <select
                 value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
-                className="px-4 py-3 pl-10 border-2 border-gray-200 rounded-2xl bg-white text-gray-800 focus:border-blue-500 focus:ring-0 appearance-none"
+                className="w-full px-4 py-3 pl-10 border-2 border-gray-200 rounded-xl sm:rounded-2xl bg-white text-gray-800 focus:border-blue-500 focus:ring-0 appearance-none text-sm sm:text-base"
               >
                 <option value="all">All Projects</option>
                 {uniqueProjects.map(projectId => {
@@ -229,7 +229,7 @@ const TasksManagement = () => {
                   );
                 })}
               </select>
-              <FiBriefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <FiBriefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
             </div>
 
             {/* Clear Filters Button */}
@@ -240,7 +240,7 @@ const TasksManagement = () => {
                   setFilter('all');
                   setSelectedProject('all');
                 }}
-                className="px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-2xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 font-semibold"
+                className="px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl sm:rounded-2xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 font-semibold text-sm sm:text-base"
               >
                 Clear Filters
               </button>
@@ -250,21 +250,21 @@ const TasksManagement = () => {
 
         {/* Active Filters Display */}
         {(dateFilter[activeTab] || filter !== 'all' || selectedProject !== 'all') && (
-          <div className="mt-4 p-4 bg-blue-50 rounded-2xl border border-blue-200">
+          <div className="mt-4 p-3 sm:p-4 bg-blue-50 rounded-xl sm:rounded-2xl border border-blue-200">
             <h4 className="text-sm font-semibold text-blue-800 mb-2">Active Filters:</h4>
             <div className="flex flex-wrap gap-2">
               {dateFilter[activeTab] && (
-                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-medium">
                   📅 {getDateRangeStats()}
                 </span>
               )}
               {filter !== 'all' && (
-                <span className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs sm:text-sm font-medium">
                   Status: {filter === 'pending' ? 'Pending' : filter === 'done' ? 'Approved' : 'Rejected'}
                 </span>
               )}
               {selectedProject !== 'all' && (
-                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs sm:text-sm font-medium">
                   Project: {tasks.daily.find(t => t.project?._id === selectedProject)?.project?.name || 
                            tasks.monthly.find(t => t.project?._id === selectedProject)?.project?.name}
                 </span>
@@ -275,41 +275,41 @@ const TasksManagement = () => {
       </div>
 
       {/* Tasks Summary */}
-      <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-gray-200/50 p-6 text-center">
-          <div className="text-2xl font-bold text-gray-800 mb-2">
+      <div className="mb-6 sm:mb-8 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg border border-gray-200/50 p-3 sm:p-4 lg:p-6 text-center">
+          <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 mb-1 sm:mb-2">
             {filteredTasks.length}
           </div>
-          <p className="text-gray-600 font-semibold">Filtered Tasks</p>
-          <p className="text-sm text-gray-500 mt-1">{getDateRangeStats()}</p>
+          <p className="text-gray-600 font-semibold text-xs sm:text-sm">Filtered Tasks</p>
+          <p className="text-xs text-gray-500 mt-1">{getDateRangeStats()}</p>
         </div>
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-gray-200/50 p-6 text-center">
-          <div className="text-2xl font-bold text-gray-800 mb-2">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg border border-gray-200/50 p-3 sm:p-4 lg:p-6 text-center">
+          <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 mb-1 sm:mb-2">
             {filteredTasks.filter(t => t.status === 'pending').length}
           </div>
-          <p className="text-gray-600 font-semibold">Pending Review</p>
+          <p className="text-gray-600 font-semibold text-xs sm:text-sm">Pending Review</p>
         </div>
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-gray-200/50 p-6 text-center">
-          <div className="text-2xl font-bold text-gray-800 mb-2">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg border border-gray-200/50 p-3 sm:p-4 lg:p-6 text-center">
+          <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 mb-1 sm:mb-2">
             {filteredTasks.filter(t => t.status === 'done').length}
           </div>
-          <p className="text-gray-600 font-semibold">Approved</p>
+          <p className="text-gray-600 font-semibold text-xs sm:text-sm">Approved</p>
         </div>
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-gray-200/50 p-6 text-center">
-          <div className="text-2xl font-bold text-gray-800 mb-2">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg border border-gray-200/50 p-3 sm:p-4 lg:p-6 text-center">
+          <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 mb-1 sm:mb-2">
             {filteredTasks.filter(t => t.status === 'failed').length}
           </div>
-          <p className="text-gray-600 font-semibold">Rejected</p>
+          <p className="text-gray-600 font-semibold text-xs sm:text-sm">Rejected</p>
         </div>
       </div>
 
       {/* Tasks List */}
       <div className="space-y-4">
         {filteredTasks.length === 0 ? (
-          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-gray-200/50 p-12 text-center">
-            <FiEye className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No Tasks Found</h3>
-            <p className="text-gray-500">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 p-6 sm:p-8 lg:p-12 text-center">
+            <FiEye className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-2">No Tasks Found</h3>
+            <p className="text-gray-500 text-sm sm:text-base">
               No {activeTab} tasks found with the current filters.
             </p>
             {(dateFilter[activeTab] || filter !== 'all' || selectedProject !== 'all') && (
@@ -319,7 +319,7 @@ const TasksManagement = () => {
                   setFilter('all');
                   setSelectedProject('all');
                 }}
-                className="mt-4 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl transition-colors font-semibold"
+                className="mt-4 px-4 py-3 sm:px-6 sm:py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl sm:rounded-2xl transition-colors font-semibold text-sm sm:text-base"
               >
                 Clear Filters
               </button>
@@ -329,28 +329,28 @@ const TasksManagement = () => {
           filteredTasks.map((task) => (
             <div
               key={task._id}
-              className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-gray-200/50 p-6 hover:shadow-xl transition-all duration-300"
+              className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 p-4 sm:p-6 hover:shadow-xl transition-all duration-300"
             >
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4 gap-3">
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
                         {task.title}
                       </h3>
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
+                      <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-2 sm:gap-4 text-sm text-gray-600 mb-3">
                         <div className="flex items-center space-x-2">
-                          <FiBriefcase className="w-4 h-4" />
-                          <span className="font-medium">{task.project?.name}</span>
+                          <FiBriefcase className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="font-medium text-xs sm:text-sm">{task.project?.name}</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <FiUsers className="w-4 h-4" />
-                          <span>{task.createdBy?.name}</span>
+                          <FiUsers className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="text-xs sm:text-sm">{task.createdBy?.name}</span>
                           {getRoleBadge(task.createdBy?.role)}
                         </div>
                         <div className="flex items-center space-x-2">
-                          <FiCalendar className="w-4 h-4" />
-                          <span>
+                          <FiCalendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="text-xs sm:text-sm">
                             {activeTab === 'daily' 
                               ? new Date(task.createdAt).toLocaleDateString('en-US', {
                                   weekday: 'short',
@@ -367,20 +367,20 @@ const TasksManagement = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 self-start">
                       {getStatusBadge(task.status)}
                     </div>
                   </div>
 
                   {task.note && (
-                    <div className="mb-4 p-3 sm:p-4 bg-gray-50 rounded-xl text-xs sm:text-sm break-words">
+                    <div className="mb-3 sm:mb-4 p-3 bg-gray-50 rounded-xl text-xs sm:text-sm break-words">
                       <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-1">Engineer Note:</h4>
                       <p className="text-gray-600">{task.note}</p>
                     </div>
                   )}
 
                   {task.supervisorNote && (
-                    <div className="p-3 sm:p-4 bg-blue-50 rounded-xl border border-blue-200 text-xs sm:text-sm break-words">
+                    <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-xs sm:text-sm break-words">
                       <h4 className="text-xs sm:text-sm font-semibold text-blue-800 mb-1">
                         Supervisor Feedback:
                         {task.reviewedBy && ` (by ${task.reviewedBy?.name})`}
