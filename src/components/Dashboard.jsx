@@ -345,7 +345,7 @@ const Dashboard = ({ onLogout }) => {
               <Route path="add-project" element={<AddProject />} />
               <Route path="projects" element={<ProjectsList />} />
               <Route path="users" element={<UsersList />} />
-              <Route path="update-project/:id" element={<UpdateProject />} />
+              <Route path="update-project/:projectId" element={<UpdateProject />} />
               <Route path="tasks" element={<TasksManagement />} />
             </Routes>
           </div>
