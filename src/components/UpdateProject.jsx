@@ -1,17 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FiBriefcase, FiSave, FiArrowLeft, FiUsers, FiUserCheck } from 'react-icons/fi';
-import { adminAPI } from '../utils/api';
+import { adminAPI, extractProjectPayload } from '../utils/api';
+
+const EMPTY_FORM_DATA = {
+  name: '',
+  scopeOfWork: '',
+  engineers: [],
+  supervisors: []
+};
+
+const normalizeIdArray = (values = []) => (
+  [...new Set(
+    values
+      .map((value) => (value === undefined || value === null ? '' : String(value).trim()))
+      .filter(Boolean)
+  )].sort()
+);
+
+const arraysEqual = (left = [], right = []) => (
+  left.length === right.length && left.every((value, index) => value === right[index])
+);
+
+const buildFormDataFromProject = (project) => ({
+  name: typeof project?.name === 'string' ? project.name.trim() : '',
+  scopeOfWork: typeof project?.scopeOfWork === 'string' ? project.scopeOfWork.trim() : '',
+  engineers: normalizeIdArray((project?.engineers || []).map((engineer) => engineer?._id || engineer)),
+  supervisors: normalizeIdArray((project?.supervisors || []).map((supervisor) => supervisor?._id || supervisor))
+});
 
 const UpdateProject = () => {
   const navigate = useNavigate();
   const { projectId } = useParams();
-  const [formData, setFormData] = useState({
-    name: '',
-    scopeOfWork: '',
-    engineers: [],
-    supervisors: []
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM_DATA);
+  const [initialFormData, setInitialFormData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -20,30 +42,39 @@ const UpdateProject = () => {
   useEffect(() => {
     const fetchProjectData = async () => {
       try {
-        console.log('Fetching project with ID:', projectId);
-        
         if (!projectId) {
           setMessage('Project ID is missing');
+          setInitialFormData(null);
           setFetchLoading(false);
           return;
         }
 
         const response = await adminAPI.getProjectById(projectId);
-        const project = response.data;
-        
-        if (project) {
-          setFormData({
-            name: project.name || '',
-            scopeOfWork: project.scopeOfWork || '',
-            engineers: project.engineers?.map(e => e._id) || [],
-            supervisors: project.supervisors?.map(s => s._id) || []
-          });
-        } else {
-          setMessage('Project not found');
+        const project = extractProjectPayload(response.data);
+
+        if (!project?._id) {
+          setMessage('Project data is unavailable. No changes were loaded.');
+          setInitialFormData(null);
+          setFormData(EMPTY_FORM_DATA);
+          return;
         }
+
+        const normalizedProject = buildFormDataFromProject(project);
+
+        if (!normalizedProject.name.trim() || !normalizedProject.scopeOfWork.trim()) {
+          setMessage('Project data is incomplete. Update is disabled to avoid accidental overwrite.');
+          setInitialFormData(null);
+          setFormData(EMPTY_FORM_DATA);
+          return;
+        }
+
+        setFormData(normalizedProject);
+        setInitialFormData(normalizedProject);
       } catch (error) {
         console.error('Error fetching project:', error);
         setMessage('Error loading project data');
+        setInitialFormData(null);
+        setFormData(EMPTY_FORM_DATA);
       } finally {
         setFetchLoading(false);
       }
@@ -64,11 +95,59 @@ const UpdateProject = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setMessage('');
 
+    if (!projectId) {
+      setMessage('Project ID is missing');
+      return;
+    }
+
+    if (!initialFormData) {
+      setMessage('Project data is unavailable. Refresh before editing.');
+      return;
+    }
+
+    const normalizedCurrent = {
+      name: formData.name.trim(),
+      scopeOfWork: formData.scopeOfWork.trim(),
+      engineers: normalizeIdArray(formData.engineers),
+      supervisors: normalizeIdArray(formData.supervisors)
+    };
+
+    if (!normalizedCurrent.name || !normalizedCurrent.scopeOfWork) {
+      setMessage('Project name and scope of work are required.');
+      return;
+    }
+
+    const payload = {};
+
+    if (normalizedCurrent.name !== initialFormData.name) {
+      payload.name = normalizedCurrent.name;
+    }
+
+    if (normalizedCurrent.scopeOfWork !== initialFormData.scopeOfWork) {
+      payload.scopeOfWork = normalizedCurrent.scopeOfWork;
+    }
+
+    if (!arraysEqual(normalizedCurrent.engineers, initialFormData.engineers)) {
+      payload.engineers = normalizedCurrent.engineers;
+    }
+
+    if (!arraysEqual(normalizedCurrent.supervisors, initialFormData.supervisors)) {
+      payload.supervisors = normalizedCurrent.supervisors;
+    }
+
+    if (Object.keys(payload).length === 0) {
+      setMessage('No changes detected.');
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      await adminAPI.updateProject(projectId, formData);
+      await adminAPI.updateProject(projectId, payload);
+      setFormData(normalizedCurrent);
+      setInitialFormData(normalizedCurrent);
       setMessage('Project updated successfully!');
       
       setTimeout(() => {
@@ -90,7 +169,7 @@ const UpdateProject = () => {
   };
 
   const handleMultiSelect = (e, field) => {
-    const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+    const selectedOptions = normalizeIdArray(Array.from(e.target.selectedOptions, option => option.value));
     setFormData({
       ...formData,
       [field]: selectedOptions
@@ -107,6 +186,30 @@ const UpdateProject = () => {
         <div className="flex flex-col items-center space-y-3 sm:space-y-4">
           <div className="w-8 h-8 sm:w-12 sm:h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="text-gray-600 text-sm sm:text-base">Loading project data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!initialFormData) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 p-6 sm:p-8">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Update Project</h1>
+              <p className="text-gray-600 text-sm sm:text-base">Project data could not be loaded safely.</p>
+            </div>
+            <button
+              onClick={() => navigate('/dashboard/projects')}
+              className="px-4 py-3 border-2 border-gray-200 text-gray-700 rounded-xl sm:rounded-2xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-300 font-semibold text-sm sm:text-base"
+            >
+              Back to Projects
+            </button>
+          </div>
+          <div className="p-4 rounded-xl border bg-rose-50 text-rose-700 border-rose-200 text-sm sm:text-base">
+            {message || 'Project data is missing or invalid. Update is blocked to prevent accidental overwrite.'}
+          </div>
         </div>
       </div>
     );

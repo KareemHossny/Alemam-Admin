@@ -34,6 +34,26 @@ api.interceptors.response.use(
   }
 );
 
+export const extractProjectPayload = (payload) => {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  if (payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
+    return payload.data;
+  }
+
+  if (payload.project && typeof payload.project === 'object') {
+    return payload.project;
+  }
+
+  if (payload._id) {
+    return payload;
+  }
+
+  return null;
+};
+
 // وظائف الـ Admin
 export const adminAPI = {
   login: (credentials) => api.post('/admin/login', credentials),
