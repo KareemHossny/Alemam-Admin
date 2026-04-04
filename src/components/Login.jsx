@@ -27,12 +27,13 @@ const Login = ({ onLogin, serverOnline }) => {
     setError('');
 
     try {
-      const response = await adminAPI.login(formData);
+      await adminAPI.login(formData);
+      const sessionResponse = await adminAPI.getCurrentUser();
       
-      if (response.data?.token) {
-        onLogin(response.data.token);
+      if (sessionResponse.data?.user) {
+        onLogin(sessionResponse.data.user);
       } else {
-        throw new Error('No token in response');
+        throw new Error('Session was not established');
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message 

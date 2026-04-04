@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
-import { checkServerStatus } from './utils/api';
+import { adminAPI, checkServerStatus } from './utils/api';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -11,28 +11,47 @@ function App() {
 
   // التحقق من حالة السيرفر والمصادقة
   useEffect(() => {
+    let isMounted = true;
+
     const initApp = async () => {
       const isOnline = await checkServerStatus();
+
+      if (!isMounted) {
+        return;
+      }
+
       setServerOnline(isOnline);
 
-      const token = localStorage.getItem('adminToken');
-      if (token && isOnline) {
-        setIsAuthenticated(true);
+      if (isOnline) {
+        try {
+          const response = await adminAPI.getCurrentUser();
+          if (isMounted && response.data?.user) {
+            setIsAuthenticated(true);
+          }
+        } catch (error) {
+          if (error.response?.status !== 401) {
+            console.error('Error restoring admin session:', error);
+          }
+        }
       }
-      
-      setLoading(false);
+
+      if (isMounted) {
+        setLoading(false);
+      }
     };
 
     initApp();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const handleLogin = (token) => {
-    localStorage.setItem('adminToken', token);
+  const handleLogin = () => {
     setIsAuthenticated(true);
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('adminToken');
     setIsAuthenticated(false);
   };
 

@@ -4,21 +4,24 @@ import axios from 'axios';
 const api = axios.create({
   baseURL: 'https://alemam-backend.vercel.app/api', 
   timeout: 15000,
+  withCredentials: true,
 });
 
-// Request Interceptor
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('adminToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+const shouldRedirectToLogin = (error) => {
+  if (error.response?.status !== 401) {
+    return false;
   }
-);
+
+  if (error.config?.skipAuthRedirect) {
+    return false;
+  }
+
+  if (error.config?.url?.includes('/login')) {
+    return false;
+  }
+
+  return window.location.pathname !== '/login';
+};
 
 // Response Interceptor
 api.interceptors.response.use(
@@ -26,8 +29,7 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('adminToken');
+    if (shouldRedirectToLogin(error)) {
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -56,8 +58,9 @@ export const extractProjectPayload = (payload) => {
 
 // وظائف الـ Admin
 export const adminAPI = {
-  login: (credentials) => api.post('/admin/login', credentials),
+  login: (credentials) => api.post('/admin/login', credentials, { skipAuthRedirect: true }),
   logout: () => api.post('/admin/logout'),
+  getCurrentUser: () => api.get('/admin/me', { skipAuthRedirect: true }),
   
   // Users
   createUser: (userData) => api.post('/admin/users', userData),
