@@ -102,8 +102,8 @@ const TasksManagement = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await adminAPI.getProjects();
-        setProjects(response.data);
+        const loadedProjects = await adminAPI.getProjects();
+        setProjects(loadedProjects);
       } catch (error) {
         console.error('Error fetching projects:', error);
       }
@@ -123,14 +123,14 @@ const TasksManagement = () => {
           dateFilter,
           pageByTab,
         });
-        const response =
+        const taskView =
           activeTab === 'daily'
             ? await adminAPI.getAllDailyTasks(filters)
             : await adminAPI.getAllMonthlyTasks(filters);
 
         setTaskViews((previous) => ({
           ...previous,
-          [activeTab]: response.data,
+          [activeTab]: taskView,
         }));
       } catch (error) {
         console.error('Error fetching tasks:', error);

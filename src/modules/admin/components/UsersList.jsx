@@ -15,11 +15,11 @@ const UsersList = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await adminAPI.getUsers();
-      setUsers(response.data);
+      const loadedUsers = await adminAPI.getUsers();
+      setUsers(loadedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
-      setMessage('Error loading users');
+      setMessage(error.message || 'Error loading users');
     } finally {
       setLoading(false);
     }
@@ -39,7 +39,7 @@ const UsersList = () => {
         setMessage('');
       }, 3000);
     } catch (error) {
-      setMessage('Error deleting user');
+      setMessage(error.message || 'Error deleting user');
     }
   };
 

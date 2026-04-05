@@ -14,8 +14,7 @@ const ReviewTasks = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await supervisorAPI.getProjectStats();
-      const projectsData = response.data?.data || [];
+      const projectsData = await supervisorAPI.getProjectStats();
       setProjects(projectsData);
 
     } catch (err) {

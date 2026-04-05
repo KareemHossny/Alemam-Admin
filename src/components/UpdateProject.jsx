@@ -49,8 +49,7 @@ const UpdateProject = () => {
           return;
         }
 
-        const response = await adminAPI.getProjectById(projectId);
-        const project = extractProjectPayload(response.data);
+        const project = extractProjectPayload(await adminAPI.getProjectById(projectId));
 
         if (!project?._id) {
           setMessage('Project data is unavailable. No changes were loaded.');
@@ -82,8 +81,8 @@ const UpdateProject = () => {
 
     const fetchUsers = async () => {
       try {
-        const response = await adminAPI.getUsers();
-        setUsers(response.data);
+        const loadedUsers = await adminAPI.getUsers();
+        setUsers(loadedUsers);
       } catch (error) {
         console.error('Error fetching users:', error);
       }
@@ -154,7 +153,7 @@ const UpdateProject = () => {
         navigate('/dashboard/projects');
       }, 1500);
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Error updating project. Please try again.');
+      setMessage(err.message || 'Error updating project. Please try again.');
     } finally {
       setLoading(false);
     }

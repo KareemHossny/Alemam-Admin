@@ -75,8 +75,8 @@ export const AuthProvider = ({ children }) => {
 
       return session;
     } catch (error) {
-      const nextError = error.response?.data?.message || error.message || 'Login failed. Please try again.';
-
+      const nextError = error.message || 'Login failed. Please try again.';
+ 
       setAuthState((previousState) => ({
         ...previousState,
         isLoading: false,

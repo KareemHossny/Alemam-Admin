@@ -16,8 +16,8 @@ const ProjectsList = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await adminAPI.getProjects();
-      setProjects(response.data);
+      const loadedProjects = await adminAPI.getProjects();
+      setProjects(loadedProjects);
     } catch (error) {
       console.error('Error fetching projects:', error);
       setMessage('Error loading projects');
@@ -40,7 +40,7 @@ const ProjectsList = () => {
         setMessage('');
       }, 3000);
     } catch (error) {
-      setMessage('Error deleting project');
+      setMessage(error.message || 'Error deleting project');
     }
   };
 

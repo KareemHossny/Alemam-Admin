@@ -3,6 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiEye, FiCalendar, FiArrowLeft, FiCheckCircle, FiClock, FiAlertCircle, FiEdit, FiUser } from 'react-icons/fi';
 import { supervisorAPI } from '../utils/api';
 
+const getLocalMonthInputValue = () => (
+  new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 7)
+);
+
+const formatStoredDateForDisplay = (dateValue) => (
+  new Intl.DateTimeFormat('ar-EG', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).format(new Date(dateValue))
+);
+
 const ReviewMonthlyTasks = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
@@ -10,7 +23,7 @@ const ReviewMonthlyTasks = () => {
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().substring(0, 7));
+  const [selectedMonth, setSelectedMonth] = useState(getLocalMonthInputValue());
   const [message, setMessage] = useState('');
   const [reviewingTask, setReviewingTask] = useState(null);
   const [reviewData, setReviewData] = useState({
@@ -21,8 +34,8 @@ const ReviewMonthlyTasks = () => {
   // استخدام useCallback لـ fetchProjectDetails
   const fetchProjectDetails = useCallback(async () => {
     try {
-      const response = await supervisorAPI.getMyProjects();
-      const projectData = response.data.find(p => p._id === projectId);
+      const projects = await supervisorAPI.getMyProjects();
+      const projectData = projects.find((item) => item._id === projectId) || null;
       setProject(projectData);
     } catch (err) {
       setMessage('فشل تحميل تفاصيل المشروع');
@@ -36,10 +49,10 @@ const ReviewMonthlyTasks = () => {
     if (!projectId || !selectedMonth) return;
     
     try {
-      const response = await supervisorAPI.getMonthlyTasks(projectId);
+      const taskPage = await supervisorAPI.getMonthlyTasks(projectId);
       
       // Filter tasks based on selected month
-      const filteredTasks = response.data.filter(task => {
+      const filteredTasks = (taskPage.data || []).filter(task => {
         const taskMonth = new Date(task.date).toISOString().substring(0, 7);
         return taskMonth === selectedMonth;
       });
@@ -226,7 +239,7 @@ const ReviewMonthlyTasks = () => {
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <FiCalendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span>{new Date(task.date).toLocaleDateString('ar-EG')}</span>
+                      <span>{formatStoredDateForDisplay(task.date)}</span>
                     </div>
                     {task.createdBy && (
                       <div className="flex items-center gap-1">

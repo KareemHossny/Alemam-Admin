@@ -61,7 +61,7 @@ const UnifiedLoginPage = () => {
       const redirectTarget = nextPath && nextPath.startsWith(roleHomePath) ? nextPath : roleHomePath;
       navigate(redirectTarget, { replace: true });
     } catch (error) {
-      setLocalError(error.response?.data?.message || error.message || 'Login failed. Please try again.');
+      setLocalError(error.message || 'Login failed. Please try again.');
     } finally {
       setSubmitting(false);
     }

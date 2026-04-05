@@ -21,8 +21,8 @@ const AddProject = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await adminAPI.getUsers();
-      setUsers(response.data);
+      const loadedUsers = await adminAPI.getUsers();
+      setUsers(loadedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -34,7 +34,7 @@ const AddProject = () => {
     setMessage('');
 
     try {
-      const response = await adminAPI.createProject(formData);
+      await adminAPI.createProject(formData);
       setMessage('Project created successfully!');
       setFormData({ name: '', scopeOfWork: '', engineers: [], supervisors: [] });
       
@@ -42,7 +42,7 @@ const AddProject = () => {
         setMessage('');
       }, 3000);
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Error creating project. Please try again.');
+      setMessage(err.message || 'Error creating project. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import apiClient from './client';
 import { ROLE_ORDER, getRoleConfig } from '../constants/roles';
+import { ensureUserPayload } from './apiHelpers';
 
 const buildAuthConfig = () => ({
   skipAuthRedirect: true,
@@ -17,25 +18,29 @@ const buildRolePath = (role, suffix) => {
 };
 
 export const authAPI = {
-  login: (role, credentials) => apiClient.post(buildRolePath(role, 'login'), credentials, buildAuthConfig()),
-  logout: (role) => apiClient.post(buildRolePath(role, 'logout'), {}, buildAuthConfig()),
-  getCurrentUser: (role) => apiClient.get(buildRolePath(role, 'me'), buildAuthConfig()),
+  login: async (role, credentials) => ensureUserPayload(
+    await apiClient.post(buildRolePath(role, 'login'), credentials, buildAuthConfig())
+  ),
+  logout: async (role) => await apiClient.post(buildRolePath(role, 'logout'), {}, buildAuthConfig()),
+  getCurrentUser: async (role) => ensureUserPayload(
+    await apiClient.get(buildRolePath(role, 'me'), buildAuthConfig())
+  ),
   async logoutAll() {
     await Promise.allSettled(ROLE_ORDER.map((role) => authAPI.logout(role)));
   },
   async resolveCurrentSession() {
     for (const role of ROLE_ORDER) {
       try {
-        const response = await authAPI.getCurrentUser(role);
+        const session = await authAPI.getCurrentUser(role);
 
-        if (response.data?.user) {
+        if (session.user) {
           return {
             role,
-            user: response.data.user,
+            user: session.user,
           };
         }
       } catch (error) {
-        if (error.response?.status && error.response.status !== 401) {
+        if (error.status && error.status !== 401) {
           throw error;
         }
       }
@@ -47,15 +52,15 @@ export const authAPI = {
     await authAPI.logoutAll();
     await authAPI.login(role, credentials);
 
-    const response = await authAPI.getCurrentUser(role);
+    const session = await authAPI.getCurrentUser(role);
 
-    if (!response.data?.user) {
+    if (!session.user) {
       throw new Error('Session was not established');
     }
 
     return {
       role,
-      user: response.data.user,
+      user: session.user,
     };
   },
 };

@@ -1,45 +1,38 @@
-import apiClient from './client';
+import { authAPI } from './auth.api';
+import { ensureProjectPayload } from './apiHelpers';
+import {
+  createProject,
+  deleteProject,
+  getAdminProjects,
+  getProjectById,
+  updateProject,
+} from './projects.api';
+import {
+  getAdminProjectStats,
+  getAdminProjectTasks,
+  getAdminTaskStats,
+  getAllDailyTasks,
+  getAllMonthlyTasks,
+} from './tasks.api';
+import { createUser, deleteUser, getUsers } from './users.api';
 
-const buildAuthConfig = () => ({
-  skipAuthRedirect: true,
-  suppressAuthEvent: true,
-});
-
-export const extractProjectPayload = (payload) => {
-  if (!payload || typeof payload !== 'object') {
-    return null;
-  }
-
-  if (payload.data && typeof payload.data === 'object' && !Array.isArray(payload.data)) {
-    return payload.data;
-  }
-
-  if (payload.project && typeof payload.project === 'object') {
-    return payload.project;
-  }
-
-  if (payload._id) {
-    return payload;
-  }
-
-  return null;
-};
+export const extractProjectPayload = (payload) => ensureProjectPayload(payload);
 
 export const adminAPI = {
-  login: (credentials) => apiClient.post('/admin/login', credentials, buildAuthConfig()),
-  logout: () => apiClient.post('/admin/logout', {}, buildAuthConfig()),
-  getCurrentUser: () => apiClient.get('/admin/me', buildAuthConfig()),
-  createUser: (userData) => apiClient.post('/admin/users', userData),
-  getUsers: () => apiClient.get('/admin/users'),
-  deleteUser: (userId) => apiClient.delete(`/admin/users/${userId}`),
-  createProject: (projectData) => apiClient.post('/admin/projects', projectData),
-  getProjects: () => apiClient.get('/admin/projects'),
-  getProjectById: (projectId) => apiClient.get(`/admin/projects/${projectId}`),
-  updateProject: (projectId, projectData) => apiClient.put(`/admin/projects/${projectId}`, projectData),
-  deleteProject: (projectId) => apiClient.delete(`/admin/projects/${projectId}`),
-  getTaskStats: (filters = {}) => apiClient.get('/admin/tasks/stats', { params: filters }),
-  getProjectStats: (projectId, filters = {}) => apiClient.get(`/admin/projects/${projectId}/stats`, { params: filters }),
-  getAllDailyTasks: (filters = {}) => apiClient.get('/admin/tasks/daily', { params: filters }),
-  getAllMonthlyTasks: (filters = {}) => apiClient.get('/admin/tasks/monthly', { params: filters }),
-  getProjectTasks: (projectId) => apiClient.get(`/admin/tasks/project/${projectId}`),
+  login: (credentials) => authAPI.login('admin', credentials),
+  logout: () => authAPI.logout('admin'),
+  getCurrentUser: () => authAPI.getCurrentUser('admin'),
+  createUser,
+  getUsers,
+  deleteUser,
+  createProject,
+  getProjects: getAdminProjects,
+  getProjectById,
+  updateProject,
+  deleteProject,
+  getTaskStats: getAdminTaskStats,
+  getProjectStats: getAdminProjectStats,
+  getAllDailyTasks,
+  getAllMonthlyTasks,
+  getProjectTasks: getAdminProjectTasks,
 };

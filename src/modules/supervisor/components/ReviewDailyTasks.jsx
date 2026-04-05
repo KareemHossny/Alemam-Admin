@@ -34,8 +34,8 @@ const ReviewDailyTasks = () => {
   // استخدام useCallback لـ fetchProjectDetails
   const fetchProjectDetails = useCallback(async () => {
     try {
-      const response = await supervisorAPI.getMyProjects();
-      const projectData = response.data.find(p => p._id === projectId);
+      const projects = await supervisorAPI.getMyProjects();
+      const projectData = projects.find((item) => item._id === projectId) || null;
       setProject(projectData);
     } catch (err) {
       setMessage('فشل تحميل تفاصيل المشروع');
@@ -49,8 +49,8 @@ const ReviewDailyTasks = () => {
     if (!projectId || !selectedDate) return;
     
     try {
-      const response = await supervisorAPI.getDailyTasks(projectId, selectedDate);
-      setTasks(response.data);
+      const taskPage = await supervisorAPI.getDailyTasks(projectId, selectedDate);
+      setTasks(taskPage.data || []);
     } catch (err) {
       console.error('Error fetching tasks:', err);
       setTasks([]);

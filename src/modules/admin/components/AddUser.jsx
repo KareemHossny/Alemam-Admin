@@ -20,7 +20,7 @@ const AddUser = () => {
     setMessage('');
 
     try {
-      const response = await adminAPI.createUser(formData);
+      await adminAPI.createUser(formData);
       setMessage('User created successfully!');
       setFormData({ name: '', email: '', password: '', role: 'engineer' });
       
@@ -28,8 +28,8 @@ const AddUser = () => {
       setTimeout(() => {
         setMessage('');
       }, 3000);
-    } catch (err) {
-      setMessage(err.response?.data?.message || 'Error creating user. Please try again.');
+    } catch (error) {
+      setMessage(error.message || 'Error creating user. Please try again.');
     } finally {
       setLoading(false);
     }
