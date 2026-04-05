@@ -1,31 +1,62 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiEye, FiCalendar, FiArrowLeft, FiCheckCircle, FiClock, FiAlertCircle, FiTrash2 } from 'react-icons/fi';
+import { FiEye, FiCalendar, FiArrowLeft, FiCheckCircle, FiClock, FiAlertCircle, FiTrash2, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { engineerAPI } from '../utils/api';
+
+const DEFAULT_LIMIT = 10;
 
 const getLocalMonthInputValue = () => (
   new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 7)
 );
 
+const createEmptyPagination = () => ({
+  total: 0,
+  page: 1,
+  pages: 0,
+  limit: DEFAULT_LIMIT,
+});
+
+const getMonthFilters = (monthString, page = 1) => {
+  const [year, month] = monthString.split('-').map(Number);
+  const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+  return {
+    dateFrom: `${monthString}-01`,
+    dateTo: `${monthString}-${String(lastDayOfMonth).padStart(2, '0')}`,
+    page,
+    limit: DEFAULT_LIMIT,
+  };
+};
+
+const formatStoredDateForDisplay = (dateValue) => (
+  new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).format(new Date(dateValue))
+);
+
 const ViewMonthlyTasks = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  
+
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [pagination, setPagination] = useState(createEmptyPagination());
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(getLocalMonthInputValue());
+  const [page, setPage] = useState(1);
   const [message, setMessage] = useState('');
 
-  // Fetch project details and set default month
   useEffect(() => {
     const fetchProjectDetails = async () => {
       try {
         const projects = await engineerAPI.getMyProjects();
         const projectData = projects.find((item) => item._id === projectId) || null;
         setProject(projectData);
-      } catch (err) {
-        setMessage(err.message || 'Failed to load project details');
+      } catch (error) {
+        setMessage(error.message || 'Failed to load project details');
       } finally {
         setLoading(false);
       }
@@ -34,29 +65,40 @@ const ViewMonthlyTasks = () => {
     fetchProjectDetails();
   }, [projectId]);
 
-  // Fetch tasks when project or month changes
   useEffect(() => {
     const fetchTasks = async () => {
-      if (!project || !selectedMonth) return;
+      if (!project || !selectedMonth) {
+        return;
+      }
 
       try {
-        const taskPage = await engineerAPI.getMonthlyTasks(projectId);
-        
-        // Filter tasks based on selected month
-        const filteredTasks = (taskPage.data || []).filter(task => {
-          const taskMonth = new Date(task.date).toISOString().substring(0, 7);
-          return taskMonth === selectedMonth;
-        });
-        
-        setTasks(filteredTasks);
-      } catch (err) {
-        console.error('Error fetching tasks:', err);
+        const taskPage = await engineerAPI.getMonthlyTasks(projectId, getMonthFilters(selectedMonth, page));
+        setTasks(taskPage.data || []);
+        setPagination(taskPage.pagination || createEmptyPagination());
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
         setTasks([]);
+        setPagination(createEmptyPagination());
       }
     };
 
     fetchTasks();
-  }, [selectedMonth, project, projectId]);
+  }, [page, project, projectId, selectedMonth]);
+
+  const refreshTasks = async (nextPage = page) => {
+    const taskPage = await engineerAPI.getMonthlyTasks(projectId, getMonthFilters(selectedMonth, nextPage));
+    setTasks(taskPage.data || []);
+    setPagination(taskPage.pagination || createEmptyPagination());
+
+    if ((taskPage.pagination?.pages || 0) > 0 && nextPage > taskPage.pagination.pages) {
+      setPage(taskPage.pagination.pages);
+      return;
+    }
+
+    if ((taskPage.pagination?.pages || 0) === 0 && nextPage !== 1) {
+      setPage(1);
+    }
+  };
 
   const handleDeleteTask = async (taskId) => {
     if (!window.confirm('Are you sure you want to delete this task?')) {
@@ -66,16 +108,9 @@ const ViewMonthlyTasks = () => {
     try {
       await engineerAPI.deleteMonthlyTask(taskId);
       setMessage('Task deleted successfully');
-      
-      // Refresh tasks
-      const taskPage = await engineerAPI.getMonthlyTasks(projectId);
-      const filteredTasks = (taskPage.data || []).filter(task => {
-        const taskMonth = new Date(task.date).toISOString().substring(0, 7);
-        return taskMonth === selectedMonth;
-      });
-      setTasks(filteredTasks);
-    } catch (err) {
-      setMessage(err.message || 'Error deleting task');
+      await refreshTasks();
+    } catch (error) {
+      setMessage(error.message || 'Error deleting task');
     }
   };
 
@@ -83,17 +118,18 @@ const ViewMonthlyTasks = () => {
     const styles = {
       pending: {
         container: 'bg-orange-100 text-orange-800 border-orange-200',
-        icon: <FiClock className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
+        icon: <FiClock className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />,
       },
       done: {
         container: 'bg-green-100 text-green-800 border-green-200',
-        icon: <FiCheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+        icon: <FiCheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />,
       },
       failed: {
         container: 'bg-rose-100 text-rose-800 border-rose-200',
-        icon: <FiAlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-rose-500" />
-      }
+        icon: <FiAlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-rose-500" />,
+      },
     };
+
     return styles[status] || styles.pending;
   };
 
@@ -101,8 +137,9 @@ const ViewMonthlyTasks = () => {
     const texts = {
       pending: 'Pending Review',
       done: 'Approved',
-      failed: 'Rejected'
+      failed: 'Rejected',
     };
+
     return texts[status] || 'Pending Review';
   };
 
@@ -125,7 +162,6 @@ const ViewMonthlyTasks = () => {
 
   return (
     <div className="max-w-6xl mx-auto w-full px-2 sm:px-4">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6 sm:mb-8">
         <div className="flex items-center gap-3 sm:gap-4">
           <button
@@ -146,7 +182,6 @@ const ViewMonthlyTasks = () => {
         </div>
       </div>
 
-      {/* Month Selection */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 p-4 sm:p-6 mb-6 sm:mb-8">
         <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-4">
           <div className="flex-1 max-w-xs">
@@ -157,7 +192,10 @@ const ViewMonthlyTasks = () => {
               <input
                 type="month"
                 value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
+                onChange={(event) => {
+                  setSelectedMonth(event.target.value);
+                  setPage(1);
+                }}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 pr-10 sm:pr-12 border-2 border-gray-200 rounded-xl sm:rounded-2xl transition-all duration-300 bg-white text-gray-800 group-hover:border-orange-300 shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none text-sm sm:text-base"
               />
               <div className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2">
@@ -165,25 +203,23 @@ const ViewMonthlyTasks = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="text-xs sm:text-sm text-gray-600">
-            Showing {tasks.length} task(s) for {getMonthName(selectedMonth)}
+            Showing {pagination.total} task(s) for {getMonthName(selectedMonth)}
           </div>
         </div>
       </div>
 
-      {/* Message */}
       {message && (
         <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border mb-4 sm:mb-6 text-sm sm:text-base ${
-          message.includes('successfully') 
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+          message.includes('successfully')
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
             : 'bg-rose-50 text-rose-700 border-rose-200'
         }`}>
           {message}
         </div>
       )}
 
-      {/* Tasks List */}
       <div className="space-y-3 sm:space-y-4">
         {tasks.length === 0 ? (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 p-6 sm:p-8 lg:p-12 text-center">
@@ -213,7 +249,7 @@ const ViewMonthlyTasks = () => {
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <FiCalendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span>{new Date(task.date).toLocaleDateString()}</span>
+                      <span>{formatStoredDateForDisplay(task.date)}</span>
                     </div>
                   </div>
                 </div>
@@ -246,6 +282,32 @@ const ViewMonthlyTasks = () => {
           ))
         )}
       </div>
+
+      {pagination.pages > 1 && (
+        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-4">
+          <div className="text-sm text-gray-600">
+            Page {pagination.page} of {pagination.pages}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+              disabled={pagination.page <= 1}
+              className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <FiChevronLeft className="w-4 h-4" />
+              Previous
+            </button>
+            <button
+              onClick={() => setPage((currentPage) => Math.min(pagination.pages, currentPage + 1))}
+              disabled={pagination.page >= pagination.pages}
+              className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              Next
+              <FiChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

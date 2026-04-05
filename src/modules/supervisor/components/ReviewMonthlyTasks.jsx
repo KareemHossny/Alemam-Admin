@@ -1,11 +1,32 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiEye, FiCalendar, FiArrowLeft, FiCheckCircle, FiClock, FiAlertCircle, FiEdit, FiUser } from 'react-icons/fi';
+import { FiEye, FiCalendar, FiArrowLeft, FiCheckCircle, FiClock, FiAlertCircle, FiEdit, FiUser, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { supervisorAPI } from '../utils/api';
+
+const DEFAULT_LIMIT = 10;
 
 const getLocalMonthInputValue = () => (
   new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 7)
 );
+
+const createEmptyPagination = () => ({
+  total: 0,
+  page: 1,
+  pages: 0,
+  limit: DEFAULT_LIMIT,
+});
+
+const getMonthFilters = (monthString, page = 1) => {
+  const [year, month] = monthString.split('-').map(Number);
+  const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+  return {
+    dateFrom: `${monthString}-01`,
+    dateTo: `${monthString}-${String(lastDayOfMonth).padStart(2, '0')}`,
+    page,
+    limit: DEFAULT_LIMIT,
+  };
+};
 
 const formatStoredDateForDisplay = (dateValue) => (
   new Intl.DateTimeFormat('ar-EG', {
@@ -19,50 +40,47 @@ const formatStoredDateForDisplay = (dateValue) => (
 const ReviewMonthlyTasks = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  
+
   const [project, setProject] = useState(null);
   const [tasks, setTasks] = useState([]);
+  const [pagination, setPagination] = useState(createEmptyPagination());
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(getLocalMonthInputValue());
+  const [page, setPage] = useState(1);
   const [message, setMessage] = useState('');
   const [reviewingTask, setReviewingTask] = useState(null);
   const [reviewData, setReviewData] = useState({
     status: 'pending',
-    supervisorNote: ''
+    supervisorNote: '',
   });
 
-  // استخدام useCallback لـ fetchProjectDetails
   const fetchProjectDetails = useCallback(async () => {
     try {
       const projects = await supervisorAPI.getMyProjects();
       const projectData = projects.find((item) => item._id === projectId) || null;
       setProject(projectData);
-    } catch (err) {
-      setMessage('فشل تحميل تفاصيل المشروع');
+    } catch (error) {
+      setMessage(error.message || 'فشل تحميل تفاصيل المشروع');
     } finally {
       setLoading(false);
     }
   }, [projectId]);
 
-  // استخدام useCallback لـ fetchTasks
   const fetchTasks = useCallback(async () => {
-    if (!projectId || !selectedMonth) return;
-    
-    try {
-      const taskPage = await supervisorAPI.getMonthlyTasks(projectId);
-      
-      // Filter tasks based on selected month
-      const filteredTasks = (taskPage.data || []).filter(task => {
-        const taskMonth = new Date(task.date).toISOString().substring(0, 7);
-        return taskMonth === selectedMonth;
-      });
-      
-      setTasks(filteredTasks);
-    } catch (err) {
-      console.error('Error fetching tasks:', err);
-      setTasks([]);
+    if (!projectId || !selectedMonth) {
+      return;
     }
-  }, [projectId, selectedMonth]);
+
+    try {
+      const taskPage = await supervisorAPI.getMonthlyTasks(projectId, getMonthFilters(selectedMonth, page));
+      setTasks(taskPage.data || []);
+      setPagination(taskPage.pagination || createEmptyPagination());
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      setTasks([]);
+      setPagination(createEmptyPagination());
+    }
+  }, [page, projectId, selectedMonth]);
 
   useEffect(() => {
     fetchProjectDetails();
@@ -72,13 +90,28 @@ const ReviewMonthlyTasks = () => {
     if (projectId && selectedMonth) {
       fetchTasks();
     }
-  }, [selectedMonth, projectId, fetchTasks]);
+  }, [page, selectedMonth, projectId, fetchTasks]);
+
+  const refreshTasks = useCallback(async (nextPage = page) => {
+    const taskPage = await supervisorAPI.getMonthlyTasks(projectId, getMonthFilters(selectedMonth, nextPage));
+    setTasks(taskPage.data || []);
+    setPagination(taskPage.pagination || createEmptyPagination());
+
+    if ((taskPage.pagination?.pages || 0) > 0 && nextPage > taskPage.pagination.pages) {
+      setPage(taskPage.pagination.pages);
+      return;
+    }
+
+    if ((taskPage.pagination?.pages || 0) === 0 && nextPage !== 1) {
+      setPage(1);
+    }
+  }, [page, projectId, selectedMonth]);
 
   const startReview = (task) => {
     setReviewingTask(task);
     setReviewData({
       status: task.status,
-      supervisorNote: task.supervisorNote || ''
+      supervisorNote: task.supervisorNote || '',
     });
   };
 
@@ -86,20 +119,22 @@ const ReviewMonthlyTasks = () => {
     setReviewingTask(null);
     setReviewData({
       status: 'pending',
-      supervisorNote: ''
+      supervisorNote: '',
     });
   };
 
   const submitReview = async () => {
-    if (!reviewingTask) return;
+    if (!reviewingTask) {
+      return;
+    }
 
     try {
       await supervisorAPI.reviewMonthlyTask(reviewingTask._id, reviewData);
       setMessage('تمت مراجعة المهمة بنجاح');
       setReviewingTask(null);
-      fetchTasks();
-    } catch (err) {
-      setMessage('فشل في مراجعة المهمة');
+      await refreshTasks();
+    } catch (error) {
+      setMessage(error.message || 'فشل في مراجعة المهمة');
     }
   };
 
@@ -107,8 +142,9 @@ const ReviewMonthlyTasks = () => {
     const icons = {
       pending: <FiClock className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />,
       done: <FiCheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />,
-      failed: <FiAlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-rose-500" />
+      failed: <FiAlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-rose-500" />,
     };
+
     return icons[status] || icons.pending;
   };
 
@@ -116,8 +152,9 @@ const ReviewMonthlyTasks = () => {
     const texts = {
       pending: 'بانتظار المراجعة',
       done: 'تمت',
-      failed: 'لم تتم'
+      failed: 'لم تتم',
     };
+
     return texts[status] || 'بانتظار المراجعة';
   };
 
@@ -125,8 +162,9 @@ const ReviewMonthlyTasks = () => {
     const colors = {
       pending: 'bg-orange-100 text-orange-800 border-orange-200',
       done: 'bg-green-100 text-green-800 border-green-200',
-      failed: 'bg-rose-100 text-rose-800 border-rose-200'
+      failed: 'bg-rose-100 text-rose-800 border-rose-200',
     };
+
     return colors[status] || colors.pending;
   };
 
@@ -149,7 +187,6 @@ const ReviewMonthlyTasks = () => {
 
   return (
     <div className="max-w-6xl mx-auto w-full px-2 sm:px-4" dir="rtl">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6 sm:mb-8">
         <div className="flex items-center gap-3 sm:gap-4">
           <button
@@ -170,7 +207,6 @@ const ReviewMonthlyTasks = () => {
         </div>
       </div>
 
-      {/* Month Selection */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 p-4 sm:p-6 mb-6 sm:mb-8">
         <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-4">
           <div className="flex-1 max-w-xs">
@@ -181,7 +217,10 @@ const ReviewMonthlyTasks = () => {
               <input
                 type="month"
                 value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
+                onChange={(event) => {
+                  setSelectedMonth(event.target.value);
+                  setPage(1);
+                }}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 pr-10 sm:pr-12 border-2 border-gray-200 rounded-xl sm:rounded-2xl transition-all duration-300 bg-white text-gray-800 group-hover:border-orange-300 shadow-sm focus:border-orange-500 focus:ring-0 focus:outline-none text-right text-sm sm:text-base"
               />
               <div className="absolute left-3 sm:left-4 top-1/2 transform -translate-y-1/2">
@@ -189,25 +228,23 @@ const ReviewMonthlyTasks = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="text-xs sm:text-sm text-gray-600 text-right">
-            عرض {tasks.length} مهمة لشهر {getMonthName(selectedMonth)}
+            عرض {pagination.total} مهمة لشهر {getMonthName(selectedMonth)}
           </div>
         </div>
       </div>
 
-      {/* Message */}
       {message && (
         <div className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl border mb-4 sm:mb-6 text-sm sm:text-base ${
-          message.includes('نجاح') 
-            ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+          message.includes('نجاح')
+            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
             : 'bg-rose-50 text-rose-700 border-rose-200'
         }`}>
           {message}
         </div>
       )}
 
-      {/* Tasks List */}
       <div className="space-y-3 sm:space-y-4">
         {tasks.length === 0 ? (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 p-6 sm:p-8 lg:p-12 text-center">
@@ -274,11 +311,11 @@ const ReviewMonthlyTasks = () => {
                   <p className="text-blue-700">{task.supervisorNote}</p>
                 </div>
               )}
-              {/* Review Form */}
+
               {reviewingTask && reviewingTask._id === task._id && (
                 <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-orange-50 rounded-lg sm:rounded-xl border border-orange-200">
                   <h4 className="text-xs sm:text-sm font-semibold text-orange-800 mb-2 sm:mb-3">مراجعة المهمة</h4>
-                  
+
                   <div className="space-y-3 sm:space-y-4">
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-orange-700 mb-2">
@@ -286,12 +323,12 @@ const ReviewMonthlyTasks = () => {
                       </label>
                       <select
                         value={reviewData.status}
-                        onChange={(e) => setReviewData({...reviewData, status: e.target.value})}
+                        onChange={(event) => setReviewData({ ...reviewData, status: event.target.value })}
                         className="w-full px-2 sm:px-3 py-1 sm:py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-xs sm:text-sm"
                       >
                         <option value="pending">بانتظار المراجعة</option>
-                        <option value="done">تمت ✅</option>
-                        <option value="failed">لم تتم ❌</option>
+                        <option value="done">تمت</option>
+                        <option value="failed">لم تتم</option>
                       </select>
                     </div>
 
@@ -301,7 +338,7 @@ const ReviewMonthlyTasks = () => {
                       </label>
                       <textarea
                         value={reviewData.supervisorNote}
-                        onChange={(e) => setReviewData({...reviewData, supervisorNote: e.target.value})}
+                        onChange={(event) => setReviewData({ ...reviewData, supervisorNote: event.target.value })}
                         placeholder="أضف ملاحظاتك للمهندس..."
                         rows="3"
                         className="w-full px-2 sm:px-3 py-1 sm:py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none text-xs sm:text-sm"
@@ -329,6 +366,32 @@ const ReviewMonthlyTasks = () => {
           ))
         )}
       </div>
+
+      {pagination.pages > 1 && (
+        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-4">
+          <div className="text-sm text-gray-600">
+            الصفحة {pagination.page} من {pagination.pages}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+              disabled={pagination.page <= 1}
+              className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <FiChevronRight className="w-4 h-4" />
+              السابق
+            </button>
+            <button
+              onClick={() => setPage((currentPage) => Math.min(pagination.pages, currentPage + 1))}
+              disabled={pagination.page >= pagination.pages}
+              className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              التالي
+              <FiChevronLeft className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
