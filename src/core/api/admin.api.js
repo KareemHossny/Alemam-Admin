@@ -37,7 +37,7 @@ export const adminAPI = {
   getProjectById: (projectId) => apiClient.get(`/admin/projects/${projectId}`),
   updateProject: (projectId, projectData) => apiClient.put(`/admin/projects/${projectId}`, projectData),
   deleteProject: (projectId) => apiClient.delete(`/admin/projects/${projectId}`),
-  getAllDailyTasks: () => apiClient.get('/admin/tasks/daily'),
-  getAllMonthlyTasks: () => apiClient.get('/admin/tasks/monthly'),
+  getAllDailyTasks: (filters = {}) => apiClient.get('/admin/tasks/daily', { params: filters }),
+  getAllMonthlyTasks: (filters = {}) => apiClient.get('/admin/tasks/monthly', { params: filters }),
   getProjectTasks: (projectId) => apiClient.get(`/admin/tasks/project/${projectId}`),
 };
