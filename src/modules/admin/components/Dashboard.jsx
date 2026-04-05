@@ -44,9 +44,9 @@ const Dashboard = ({ onLogout }) => {
         adminAPI.getUsers(),
         adminAPI.getProjects()
       ]);
-      
-      const users = usersResponse.data;
-      const projects = projectsResponse.data;
+
+      const users = usersResponse;
+      const projects = projectsResponse;
       
       const engineers = users.filter(user => user.role === 'engineer');
       const supervisors = users.filter(user => user.role === 'supervisor');

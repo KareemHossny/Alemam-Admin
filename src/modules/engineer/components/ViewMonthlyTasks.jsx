@@ -5,9 +5,13 @@ import { engineerAPI } from '../utils/api';
 
 const DEFAULT_LIMIT = 10;
 
-const getLocalMonthInputValue = () => (
-  new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 7)
-);
+const getCurrentMonthInputValue = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+
+  return `${year}-${month}`;
+};
 
 const createEmptyPagination = () => ({
   total: 0,
@@ -17,12 +21,9 @@ const createEmptyPagination = () => ({
 });
 
 const getMonthFilters = (monthString, page = 1) => {
-  const [year, month] = monthString.split('-').map(Number);
-  const lastDayOfMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-
   return {
     dateFrom: `${monthString}-01`,
-    dateTo: `${monthString}-${String(lastDayOfMonth).padStart(2, '0')}`,
+    dateTo: `${monthString}-31`,
     page,
     limit: DEFAULT_LIMIT,
   };
@@ -45,7 +46,7 @@ const ViewMonthlyTasks = () => {
   const [tasks, setTasks] = useState([]);
   const [pagination, setPagination] = useState(createEmptyPagination());
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(getLocalMonthInputValue());
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthInputValue());
   const [page, setPage] = useState(1);
   const [message, setMessage] = useState('');
 
