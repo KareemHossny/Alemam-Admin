@@ -22,6 +22,7 @@ export const engineerAPI = {
   logout: () => apiClient.post('/engineer/logout', {}, buildAuthConfig()),
   getCurrentUser: () => apiClient.get('/engineer/me', buildAuthConfig()),
   getMyProjects: () => apiClient.get('/engineer/projects'),
+  getDashboardStats: () => apiClient.get('/engineer/dashboard/stats'),
   getDailyTasks: (projectId, filters) => apiClient.get(`/engineer/daily-tasks/${projectId}`, {
     params: normalizeTaskFilters(filters),
   }),

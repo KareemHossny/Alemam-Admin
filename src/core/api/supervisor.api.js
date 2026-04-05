@@ -22,6 +22,8 @@ export const supervisorAPI = {
   logout: () => apiClient.post('/supervisor/logout', {}, buildAuthConfig()),
   getCurrentUser: () => apiClient.get('/supervisor/me', buildAuthConfig()),
   getMyProjects: () => apiClient.get('/supervisor/projects'),
+  getDashboardStats: () => apiClient.get('/supervisor/dashboard/stats'),
+  getProjectStats: () => apiClient.get('/supervisor/projects/stats'),
   getDailyTasks: (projectId, filters) => apiClient.get(`/supervisor/daily-tasks/${projectId}`, {
     params: normalizeTaskFilters(filters),
   }),

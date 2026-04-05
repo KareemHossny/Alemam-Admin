@@ -7,7 +7,6 @@ const ReviewTasks = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [projectStats, setProjectStats] = useState({});
 
   useEffect(() => {
     fetchProjects();
@@ -15,35 +14,10 @@ const ReviewTasks = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await supervisorAPI.getMyProjects();
-      const projectsData = response.data;
+      const response = await supervisorAPI.getProjectStats();
+      const projectsData = response.data?.data || [];
       setProjects(projectsData);
 
-      const stats = {};
-      for (const project of projectsData) {
-        try {
-          const [dailyTasksResponse, monthlyTasksResponse] = await Promise.all([
-            supervisorAPI.getDailyTasks(project._id),
-            supervisorAPI.getMonthlyTasks(project._id)
-          ]);
-          
-          const dailyTasks = dailyTasksResponse.data;
-          const monthlyTasks = monthlyTasksResponse.data;
-          
-          const pendingTasks = [...dailyTasks, ...monthlyTasks].filter(task => task.status === 'pending').length;
-          const reviewedTasks = [...dailyTasks, ...monthlyTasks].filter(task => task.status !== 'pending').length;
-          
-          stats[project._id] = {
-            pending: pendingTasks,
-            reviewed: reviewedTasks,
-            total: dailyTasks.length + monthlyTasks.length
-          };
-        } catch (error) {
-          console.error(`Error fetching tasks for project ${project._id}:`, error);
-          stats[project._id] = { pending: 0, reviewed: 0, total: 0 };
-        }
-      }
-      setProjectStats(stats);
     } catch (err) {
       setError('فشل تحميل المشاريع');
       console.error('Error fetching projects:', err);
@@ -106,7 +80,7 @@ const ReviewTasks = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
           {projects.map((project) => {
-            const stats = projectStats[project._id] || { pending: 0, reviewed: 0, total: 0 };
+            const stats = project.stats || { pending: 0, reviewed: 0, total: 0 };
             
             return (
               <div

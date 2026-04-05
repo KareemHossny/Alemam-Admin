@@ -75,6 +75,8 @@ export const adminAPI = {
   deleteProject: (projectId) => api.delete(`/admin/projects/${projectId}`),
   
   // Tasks Management
+  getTaskStats: (filters = {}) => api.get('/admin/tasks/stats', { params: filters }),
+  getProjectStats: (projectId, filters = {}) => api.get(`/admin/projects/${projectId}/stats`, { params: filters }),
   getAllDailyTasks: (filters = {}) => api.get('/admin/tasks/daily', { params: filters }),
   getAllMonthlyTasks: (filters = {}) => api.get('/admin/tasks/monthly', { params: filters }),
   getProjectTasks: (projectId) => api.get(`/admin/tasks/project/${projectId}`),
