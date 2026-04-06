@@ -21,13 +21,36 @@ export const ensureObject = (value, fallback = {}) => (isPlainObject(value) ? va
 
 export const ensureNullableObject = (value) => (isPlainObject(value) ? value : null);
 
+const isUserObject = (value) => (
+  isPlainObject(value)
+  && typeof value.role === 'string'
+  && (
+    typeof value.email === 'string'
+    || typeof value.name === 'string'
+    || typeof value.id === 'string'
+  )
+);
+
 export const ensureUserPayload = (value) => {
   const payload = ensureObject(value);
   const user = ensureNullableObject(payload.user);
 
+  if (user) {
+    return {
+      ...payload,
+      user,
+    };
+  }
+
+  if (isUserObject(payload)) {
+    return {
+      user: payload,
+    };
+  }
+
   return {
     ...payload,
-    user,
+    user: null,
   };
 };
 
