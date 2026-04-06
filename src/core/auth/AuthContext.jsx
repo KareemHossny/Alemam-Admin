@@ -46,11 +46,12 @@ export const AuthProvider = ({ children }) => {
       return null;
     } catch (error) {
       console.error('Unable to restore session:', error);
+      const nextError = error.message || 'Unable to restore the current session.';
       setAuthState({
         user: null,
         role: null,
         isLoading: false,
-        error: 'Unable to restore the current session.',
+        error: nextError,
       });
       return null;
     }

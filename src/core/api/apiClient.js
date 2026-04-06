@@ -35,6 +35,21 @@ const createApiError = (message, options = {}) => {
   return error;
 };
 
+const buildRequestPath = (config = {}) => {
+  const baseURL = normalizeBaseUrl(config.baseURL || '');
+  const url = typeof config.url === 'string' ? config.url : '';
+
+  if (!baseURL) {
+    return url || 'unknown endpoint';
+  }
+
+  if (!url) {
+    return baseURL;
+  }
+
+  return `${baseURL}${url.startsWith('/') ? url : `/${url}`}`;
+};
+
 const getErrorMessage = (error) => {
   if (error.response?.data?.error?.message) {
     return error.response.data.error.message;
@@ -42,6 +57,14 @@ const getErrorMessage = (error) => {
 
   if (error.response?.data?.message) {
     return error.response.data.message;
+  }
+
+  if (error.response) {
+    if (error.response.status === 404) {
+      return `API endpoint not found: ${buildRequestPath(error.config)}`;
+    }
+
+    return error.response.statusText || `Request failed with status ${error.response.status}`;
   }
 
   if (error.request) {
@@ -52,7 +75,13 @@ const getErrorMessage = (error) => {
 };
 
 const normalizeApiError = (error) => createApiError(getErrorMessage(error), {
-  code: error.response?.data?.error?.code,
+  code: error.response?.data?.error?.code || (
+    error.response?.status === 404
+      ? 'API_ENDPOINT_NOT_FOUND'
+      : error.request && !error.response
+        ? 'NETWORK_ERROR'
+        : undefined
+  ),
   details: error.response?.data?.error?.details,
   status: error.response?.status,
   originalError: error,

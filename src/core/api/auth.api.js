@@ -1,4 +1,4 @@
-import apiClient from './client';
+import apiClient from './apiClient';
 import { ROLE_ORDER, getRoleConfig } from '../constants/roles';
 import { ensureUserPayload } from './apiHelpers';
 
