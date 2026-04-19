@@ -1,5 +1,6 @@
 import { authAPI } from './auth.api';
-import { ensureProjectPayload } from './apiHelpers';
+import { ensureObject, ensureProjectPayload } from './apiHelpers';
+import apiClient from './apiClient';
 import {
   createProject,
   deleteProject,
@@ -18,10 +19,15 @@ import { createUser, deleteUser, getUsers } from './users.api';
 
 export const extractProjectPayload = (payload) => ensureProjectPayload(payload);
 
+const getAdminDashboardStats = async () => ensureObject(
+  await apiClient.get('/admin/stats')
+);
+
 export const adminAPI = {
   login: (credentials) => authAPI.login('admin', credentials),
   logout: () => authAPI.logout('admin'),
   getCurrentUser: () => authAPI.getCurrentUser('admin'),
+  getDashboardStats: getAdminDashboardStats,
   createUser,
   getUsers,
   deleteUser,

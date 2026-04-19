@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   FiMenu,
@@ -10,16 +10,18 @@ import {
   FiBarChart2,
   FiBriefcase
 } from 'react-icons/fi';
-import AddTasks from './AddTasks';
-import AddDailyTask from './AddDailyTask';
-import AddMonthlyTask from './AddMonthlyTask';
-import ViewTasks from './ViewTasks';
-import ViewDailyTasks from './ViewDailyTasks';
-import ViewMonthlyTasks from './ViewMonthlyTasks';
 import { engineerAPI } from '../utils/api';
 import ErrorState from '../../../shared/components/ErrorState';
+import SectionLoader from '../../../shared/components/SectionLoader';
 import StatusBanner from '../../../shared/components/StatusBanner';
 import getErrorMessage from '../../../shared/utils/getErrorMessage';
+
+const AddTasks = lazy(() => import('./AddTasks'));
+const AddDailyTask = lazy(() => import('./AddDailyTask'));
+const AddMonthlyTask = lazy(() => import('./AddMonthlyTask'));
+const ViewTasks = lazy(() => import('./ViewTasks'));
+const ViewDailyTasks = lazy(() => import('./ViewDailyTasks'));
+const ViewMonthlyTasks = lazy(() => import('./ViewMonthlyTasks'));
 
 const EngineerDashboard = ({ onLogout, engineerInfo }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -207,26 +209,28 @@ const EngineerDashboard = ({ onLogout, engineerInfo }) => {
             variant="error"
             className="mb-4 sm:mb-6"
           />
-          <Routes>
-            <Route path="add-tasks" element={<AddTasks />} />
-            <Route path="add-daily-task/:projectId" element={<AddDailyTask />} />
-            <Route path="add-monthly-task/:projectId" element={<AddMonthlyTask />} />
-            <Route path="view-tasks" element={<ViewTasks />} />
-            <Route path="view-daily-tasks/:projectId" element={<ViewDailyTasks />} />
-            <Route path="view-monthly-tasks/:projectId" element={<ViewMonthlyTasks />} />
-            <Route
-              index
-              element={(
-                <EngineerWelcomeSection
-                  stats={stats}
-                  loading={loading}
-                  statsError={statsError}
-                  onRetry={fetchStats}
-                  engineerInfo={engineerInfo}
-                />
-              )}
-            />
-          </Routes>
+          <Suspense fallback={<SectionLoader label="Loading engineer workspace..." />}>
+            <Routes>
+              <Route path="add-tasks" element={<AddTasks />} />
+              <Route path="add-daily-task/:projectId" element={<AddDailyTask />} />
+              <Route path="add-monthly-task/:projectId" element={<AddMonthlyTask />} />
+              <Route path="view-tasks" element={<ViewTasks />} />
+              <Route path="view-daily-tasks/:projectId" element={<ViewDailyTasks />} />
+              <Route path="view-monthly-tasks/:projectId" element={<ViewMonthlyTasks />} />
+              <Route
+                index
+                element={(
+                  <EngineerWelcomeSection
+                    stats={stats}
+                    loading={loading}
+                    statsError={statsError}
+                    onRetry={fetchStats}
+                    engineerInfo={engineerInfo}
+                  />
+                )}
+              />
+            </Routes>
+          </Suspense>
         </main>
       </div>
 

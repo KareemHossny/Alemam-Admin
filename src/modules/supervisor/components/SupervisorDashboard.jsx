@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import {
   FiBarChart2,
@@ -11,13 +11,15 @@ import {
   FiUser,
   FiX,
 } from 'react-icons/fi';
-import ReviewDailyTasks from './ReviewDailyTasks';
-import ReviewMonthlyTasks from './ReviewMonthlyTasks';
-import ReviewTasks from './ReviewTasks';
 import { supervisorAPI } from '../utils/api';
 import ErrorState from '../../../shared/components/ErrorState';
+import SectionLoader from '../../../shared/components/SectionLoader';
 import StatusBanner from '../../../shared/components/StatusBanner';
 import getErrorMessage from '../../../shared/utils/getErrorMessage';
+
+const ReviewDailyTasks = lazy(() => import('./ReviewDailyTasks'));
+const ReviewMonthlyTasks = lazy(() => import('./ReviewMonthlyTasks'));
+const ReviewTasks = lazy(() => import('./ReviewTasks'));
 
 const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -193,23 +195,25 @@ const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
             variant="error"
             className="mb-4 sm:mb-6"
           />
-          <Routes>
-            <Route path="review-tasks" element={<ReviewTasks />} />
-            <Route path="review-daily-tasks/:projectId" element={<ReviewDailyTasks />} />
-            <Route path="review-monthly-tasks/:projectId" element={<ReviewMonthlyTasks />} />
-            <Route
-              index
-              element={(
-                <SupervisorWelcomeSection
-                  stats={stats}
-                  loading={loading}
-                  statsError={statsError}
-                  onRetry={fetchStats}
-                  supervisorInfo={supervisorInfo}
-                />
-              )}
-            />
-          </Routes>
+          <Suspense fallback={<SectionLoader label="Loading supervisor workspace..." />}>
+            <Routes>
+              <Route path="review-tasks" element={<ReviewTasks />} />
+              <Route path="review-daily-tasks/:projectId" element={<ReviewDailyTasks />} />
+              <Route path="review-monthly-tasks/:projectId" element={<ReviewMonthlyTasks />} />
+              <Route
+                index
+                element={(
+                  <SupervisorWelcomeSection
+                    stats={stats}
+                    loading={loading}
+                    statsError={statsError}
+                    onRetry={fetchStats}
+                    supervisorInfo={supervisorInfo}
+                  />
+                )}
+              />
+            </Routes>
+          </Suspense>
         </main>
       </div>
 

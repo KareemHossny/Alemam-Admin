@@ -24,16 +24,12 @@ const AdminHomePage = () => {
       setLoading(true);
       setError('');
 
-      const [users, projects] = await Promise.all([
-        adminAPI.getUsers(),
-        adminAPI.getProjects(),
-      ]);
-
+      const dashboardStats = await adminAPI.getDashboardStats();
       setStats({
-        totalUsers: users.length,
-        totalProjects: projects.length,
-        totalEngineers: users.filter((user) => user.role === 'engineer').length,
-        totalSupervisors: users.filter((user) => user.role === 'supervisor').length,
+        totalUsers: dashboardStats.totalUsers || 0,
+        totalProjects: dashboardStats.totalProjects || 0,
+        totalEngineers: dashboardStats.totalEngineers || 0,
+        totalSupervisors: dashboardStats.totalSupervisors || 0,
       });
     } catch (apiError) {
       setError(getErrorMessage(apiError, 'Unable to load the admin dashboard right now.'));

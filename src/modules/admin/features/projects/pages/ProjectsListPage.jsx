@@ -6,12 +6,14 @@ import PageHeader from '../../../../../shared/components/PageHeader';
 import SectionLoader from '../../../../../shared/components/SectionLoader';
 import StatusBanner from '../../../../../shared/components/StatusBanner';
 import SurfaceCard from '../../../../../shared/components/SurfaceCard';
+import useConfirmationModal from '../../../../../shared/hooks/useConfirmationModal';
 
 const ProjectsListPage = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [message, setMessage] = useState('');
+  const { openConfirmation, confirmationModal } = useConfirmationModal();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,21 +33,24 @@ const ProjectsListPage = () => {
   };
 
   const handleDelete = async (projectId, projectName) => {
-    if (!window.confirm(`Are you sure you want to delete "${projectName}"?`)) {
-      return;
-    }
+    openConfirmation({
+      title: 'Delete project?',
+      message: `This will permanently remove "${projectName}" and its assignments.`,
+      confirmLabel: 'Delete project',
+      onConfirm: async () => {
+        try {
+          await adminAPI.deleteProject(projectId);
+          setMessage('Project deleted successfully');
+          await fetchProjects();
 
-    try {
-      await adminAPI.deleteProject(projectId);
-      setMessage('Project deleted successfully');
-      fetchProjects(); // Refresh the list
-      
-      setTimeout(() => {
-        setMessage('');
-      }, 3000);
-    } catch (error) {
-      setMessage(error.message || 'Error deleting project');
-    }
+          setTimeout(() => {
+            setMessage('');
+          }, 3000);
+        } catch (error) {
+          setMessage(error.message || 'Error deleting project');
+        }
+      },
+    });
   };
 
   const filteredProjects = projects.filter(project =>
@@ -59,12 +64,14 @@ const ProjectsListPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <PageHeader
-        title="Projects Management"
-        description="View and manage all projects"
-        icon={FiBriefcase}
-      />
+    <>
+      {confirmationModal}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <PageHeader
+          title="Projects Management"
+          description="View and manage all projects"
+          icon={FiBriefcase}
+        />
 
       <SurfaceCard className="mb-6 sm:mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -96,22 +103,22 @@ const ProjectsListPage = () => {
         className="mb-4 sm:mb-6"
       />
 
-      {/* Projects Grid */}
-      {filteredProjects.length === 0 ? (
-        <SurfaceCard className="p-8 text-center sm:p-12">
-          <FiBriefcase className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-2">No projects found</h3>
-          <p className="text-gray-500 text-sm sm:text-base">
-            {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first project'}
-          </p>
-        </SurfaceCard>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
-          {filteredProjects.map((project) => (
-            <div
-              key={project._id}
-              className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
-            >
+        {/* Projects Grid */}
+        {filteredProjects.length === 0 ? (
+          <SurfaceCard className="p-8 text-center sm:p-12">
+            <FiBriefcase className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-2">No projects found</h3>
+            <p className="text-gray-500 text-sm sm:text-base">
+              {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first project'}
+            </p>
+          </SurfaceCard>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+            {filteredProjects.map((project) => (
+              <div
+                key={project._id}
+                className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+              >
               {/* Project Header */}
               <div className="flex items-start justify-between mb-3 sm:mb-4">
                 <div className="flex-1">
@@ -206,11 +213,12 @@ const ProjectsListPage = () => {
                   <span className="text-xs sm:text-sm font-medium">Edit</span>
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 

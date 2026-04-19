@@ -5,6 +5,7 @@ import PageHeader from '../../../../../shared/components/PageHeader';
 import SectionLoader from '../../../../../shared/components/SectionLoader';
 import StatusBanner from '../../../../../shared/components/StatusBanner';
 import SurfaceCard from '../../../../../shared/components/SurfaceCard';
+import useConfirmationModal from '../../../../../shared/hooks/useConfirmationModal';
 
 const UsersListPage = () => {
   const [users, setUsers] = useState([]);
@@ -12,6 +13,7 @@ const UsersListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [message, setMessage] = useState('');
+  const { openConfirmation, confirmationModal } = useConfirmationModal();
 
   useEffect(() => {
     fetchUsers();
@@ -30,21 +32,24 @@ const UsersListPage = () => {
   };
 
   const handleDelete = async (userId, userName) => {
-    if (!window.confirm(`Are you sure you want to delete user "${userName}"?`)) {
-      return;
-    }
+    openConfirmation({
+      title: 'Delete user?',
+      message: `This will permanently remove "${userName}" from the system.`,
+      confirmLabel: 'Delete user',
+      onConfirm: async () => {
+        try {
+          await adminAPI.deleteUser(userId);
+          setMessage('User deleted successfully');
+          await fetchUsers();
 
-    try {
-      await adminAPI.deleteUser(userId);
-      setMessage('User deleted successfully');
-      fetchUsers(); // Refresh the list
-      
-      setTimeout(() => {
-        setMessage('');
-      }, 3000);
-    } catch (error) {
-      setMessage(error.message || 'Error deleting user');
-    }
+          setTimeout(() => {
+            setMessage('');
+          }, 3000);
+        } catch (error) {
+          setMessage(error.message || 'Error deleting user');
+        }
+      },
+    });
   };
 
   const filteredUsers = users.filter(user => {
@@ -77,12 +82,14 @@ const UsersListPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <PageHeader
-        title="Users Management"
-        description="View and manage all system users"
-        icon={FiUsers}
-      />
+    <>
+      {confirmationModal}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <PageHeader
+          title="Users Management"
+          description="View and manage all system users"
+          icon={FiUsers}
+        />
 
       <SurfaceCard className="mb-6 sm:mb-8">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -141,72 +148,73 @@ const UsersListPage = () => {
         className="mb-4 sm:mb-6"
       />
 
-      {/* Users Table */}
-      {filteredUsers.length === 0 ? (
-        <SurfaceCard className="p-6 text-center sm:p-8 lg:p-12">
-          <FiUsers className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-2">No users found</h3>
-          <p className="text-gray-500 text-sm sm:text-base">
-            {searchTerm || roleFilter !== 'all' ? 'Try adjusting your search filters' : 'Get started by creating your first user'}
-          </p>
-        </SurfaceCard>
-      ) : (
-        <SurfaceCard className="overflow-hidden p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200/60">
-                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200/60">
-                {filteredUsers.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50/50 transition-colors duration-200">
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <div className="flex items-center space-x-3 sm:space-x-4">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center text-white font-semibold text-xs sm:text-sm">
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-800 text-sm sm:text-base">{user.name}</div>
-                          <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-gray-500">
-                            <FiMail className="w-3 h-3 sm:w-4 sm:h-4" />
-                            <span>{user.email}</span>
+        {/* Users Table */}
+        {filteredUsers.length === 0 ? (
+          <SurfaceCard className="p-6 text-center sm:p-8 lg:p-12">
+            <FiUsers className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-600 mb-2">No users found</h3>
+            <p className="text-gray-500 text-sm sm:text-base">
+              {searchTerm || roleFilter !== 'all' ? 'Try adjusting your search filters' : 'Get started by creating your first user'}
+            </p>
+          </SurfaceCard>
+        ) : (
+          <SurfaceCard className="overflow-hidden p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200/60">
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Role
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200/60">
+                  {filteredUsers.map((user) => (
+                    <tr key={user._id} className="hover:bg-gray-50/50 transition-colors duration-200">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="flex items-center space-x-3 sm:space-x-4">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center text-white font-semibold text-xs sm:text-sm">
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-800 text-sm sm:text-base">{user.name}</div>
+                            <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm text-gray-500">
+                              <FiMail className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span>{user.email}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <div className="flex items-center space-x-2">
-                        {getRoleIcon(user.role)}
-                        {getRoleBadge(user.role)}
-                      </div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-4">
-                      <button
-                        onClick={() => handleDelete(user._id, user.name)}
-                        className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 text-rose-700 hover:bg-rose-50 rounded-xl transition-colors duration-200"
-                      >
-                        <FiTrash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span className="text-xs sm:text-sm font-medium">Delete</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </SurfaceCard>
-      )}
-    </div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="flex items-center space-x-2">
+                          {getRoleIcon(user.role)}
+                          {getRoleBadge(user.role)}
+                        </div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <button
+                          onClick={() => handleDelete(user._id, user.name)}
+                          className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 text-rose-700 hover:bg-rose-50 rounded-xl transition-colors duration-200"
+                        >
+                          <FiTrash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="text-xs sm:text-sm font-medium">Delete</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </SurfaceCard>
+        )}
+      </div>
+    </>
   );
 };
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FiBriefcase, FiSave, FiUsers, FiUserCheck } from 'react-icons/fi';
+import { FiBriefcase, FiSave, FiUsers } from 'react-icons/fi';
 import { adminAPI, extractProjectPayload } from '../../../utils/api';
 import PageHeader from '../../../../../shared/components/PageHeader';
+import SearchableMultiSelect from '../../../../../shared/components/SearchableMultiSelect';
 import SectionLoader from '../../../../../shared/components/SectionLoader';
 import StatusBanner from '../../../../../shared/components/StatusBanner';
 import SurfaceCard from '../../../../../shared/components/SurfaceCard';
@@ -171,8 +172,8 @@ const UpdateProjectPage = () => {
     if (message) setMessage('');
   };
 
-  const handleMultiSelect = (e, field) => {
-    const selectedOptions = normalizeIdArray(Array.from(e.target.selectedOptions, option => option.value));
+  const handleSelectionChange = (field, values) => {
+    const selectedOptions = normalizeIdArray(values);
     setFormData({
       ...formData,
       [field]: selectedOptions
@@ -182,6 +183,16 @@ const UpdateProjectPage = () => {
 
   const engineers = users.filter(user => user.role === 'engineer');
   const supervisors = users.filter(user => user.role === 'supervisor');
+  const engineerOptions = engineers.map((engineer) => ({
+    value: engineer._id,
+    label: engineer.name,
+    description: engineer.email
+  }));
+  const supervisorOptions = supervisors.map((supervisor) => ({
+    value: supervisor._id,
+    label: supervisor.name,
+    description: supervisor.email
+  }));
   const isSuccessMessage = message.includes('successfully');
 
   if (fetchLoading) {
@@ -275,33 +286,17 @@ const UpdateProjectPage = () => {
             <label htmlFor="engineers" className="block text-sm font-semibold text-gray-700">
               Assign Engineers
             </label>
-            <div className="relative group">
-              <select
-                id="engineers"
-                name="engineers"
-                multiple
-                value={formData.engineers}
-                onChange={(e) => handleMultiSelect(e, 'engineers')}
-                className="w-full px-4 py-3 sm:py-4 pl-10 sm:pl-12 border-2 border-gray-200 rounded-xl sm:rounded-2xl transition-all duration-300 bg-white text-gray-800 group-hover:border-blue-300 shadow-sm focus:border-blue-500 focus:ring-0 focus:outline-none focus:shadow-lg focus:shadow-blue-500/20 appearance-none min-h-[100px] sm:min-h-[120px] text-sm sm:text-base"
-              >
-                <option value="" disabled>Select engineers...</option>
-                {engineers.map(engineer => (
-                  <option key={engineer._id} value={engineer._id}>
-                    {engineer.name} ({engineer.email})
-                  </option>
-                ))}
-              </select>
-              <div className="absolute left-3 sm:left-4 top-3 sm:top-4 transition-transform duration-300 group-hover:scale-110">
-                <FiUsers className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
-              </div>
-              <div className="absolute right-3 sm:right-4 top-3 sm:top-4 pointer-events-none">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+            <SearchableMultiSelect
+              id="engineers"
+              options={engineerOptions}
+              value={formData.engineers}
+              onChange={(values) => handleSelectionChange('engineers', values)}
+              placeholder="Search engineers by name or email..."
+              emptyLabel="No engineers match your search."
+              selectedLabel="engineers selected"
+            />
             <p className="text-xs sm:text-sm text-gray-500">
-              Hold Ctrl/Cmd to select multiple engineers. Currently selected: {formData.engineers.length}
+              Tap to update assignments. Currently selected: {formData.engineers.length}
             </p>
           </div>
 
@@ -310,33 +305,17 @@ const UpdateProjectPage = () => {
             <label htmlFor="supervisors" className="block text-sm font-semibold text-gray-700">
               Assign Supervisors
             </label>
-            <div className="relative group">
-              <select
-                id="supervisors"
-                name="supervisors"
-                multiple
-                value={formData.supervisors}
-                onChange={(e) => handleMultiSelect(e, 'supervisors')}
-                className="w-full px-4 py-3 sm:py-4 pl-10 sm:pl-12 border-2 border-gray-200 rounded-xl sm:rounded-2xl transition-all duration-300 bg-white text-gray-800 group-hover:border-blue-300 shadow-sm focus:border-blue-500 focus:ring-0 focus:outline-none focus:shadow-lg focus:shadow-blue-500/20 appearance-none min-h-[100px] sm:min-h-[120px] text-sm sm:text-base"
-              >
-                <option value="" disabled>Select supervisors...</option>
-                {supervisors.map(supervisor => (
-                  <option key={supervisor._id} value={supervisor._id}>
-                    {supervisor.name} ({supervisor.email})
-                  </option>
-                ))}
-              </select>
-              <div className="absolute left-3 sm:left-4 top-3 sm:top-4 transition-transform duration-300 group-hover:scale-110">
-                <FiUserCheck className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
-              </div>
-              <div className="absolute right-3 sm:right-4 top-3 sm:top-4 pointer-events-none">
-                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
+            <SearchableMultiSelect
+              id="supervisors"
+              options={supervisorOptions}
+              value={formData.supervisors}
+              onChange={(values) => handleSelectionChange('supervisors', values)}
+              placeholder="Search supervisors by name or email..."
+              emptyLabel="No supervisors match your search."
+              selectedLabel="supervisors selected"
+            />
             <p className="text-xs sm:text-sm text-gray-500">
-              Hold Ctrl/Cmd to select multiple supervisors. Currently selected: {formData.supervisors.length}
+              Tap to update assignments. Currently selected: {formData.supervisors.length}
             </p>
           </div>
 

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiEye, FiCalendar, FiArrowLeft, FiCheckCircle, FiClock, FiAlertCircle, FiTrash2, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { engineerAPI } from '../utils/api';
 import getErrorMessage from '../../../shared/utils/getErrorMessage';
+import useConfirmationModal from '../../../shared/hooks/useConfirmationModal';
 
 const DEFAULT_LIMIT = 10;
 
@@ -50,6 +51,7 @@ const ViewMonthlyTasks = () => {
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthInputValue());
   const [page, setPage] = useState(1);
   const [message, setMessage] = useState('');
+  const { openConfirmation, confirmationModal } = useConfirmationModal();
 
   useEffect(() => {
     const fetchProjectDetails = async () => {
@@ -103,17 +105,20 @@ const ViewMonthlyTasks = () => {
   };
 
   const handleDeleteTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) {
-      return;
-    }
-
-    try {
-      await engineerAPI.deleteMonthlyTask(taskId);
-      setMessage('Task deleted successfully');
-      await refreshTasks();
-    } catch (error) {
-      setMessage(error.message || 'Error deleting task');
-    }
+    openConfirmation({
+      title: 'Delete task?',
+      message: 'This monthly task will be permanently removed.',
+      confirmLabel: 'Delete task',
+      onConfirm: async () => {
+        try {
+          await engineerAPI.deleteMonthlyTask(taskId);
+          setMessage('Task deleted successfully');
+          await refreshTasks();
+        } catch (error) {
+          setMessage(error.message || 'Error deleting task');
+        }
+      },
+    });
   };
 
   const getStatusStyles = (status) => {
@@ -163,26 +168,28 @@ const ViewMonthlyTasks = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-2 sm:px-4">
-      <div className="flex items-center justify-between mb-6 sm:mb-8">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <button
-            onClick={() => navigate('/engineer/view-tasks')}
-            className="p-2 sm:p-3 hover:bg-gray-100 rounded-xl sm:rounded-2xl transition-colors"
-          >
-            <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-          </button>
-          <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">View Monthly Tasks</h1>
-            <p className="text-gray-600 text-sm sm:text-base">
-              {project?.name} - Monitor your monthly task progress
-            </p>
+    <>
+      {confirmationModal}
+      <div className="max-w-6xl mx-auto w-full px-2 sm:px-4">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <button
+              onClick={() => navigate('/engineer/view-tasks')}
+              className="p-2 sm:p-3 hover:bg-gray-100 rounded-xl sm:rounded-2xl transition-colors"
+            >
+              <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">View Monthly Tasks</h1>
+              <p className="text-gray-600 text-sm sm:text-base">
+                {project?.name} - Monitor your monthly task progress
+              </p>
+            </div>
+          </div>
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-600 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg">
+            <FiEye className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
           </div>
         </div>
-        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-600 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-lg">
-          <FiEye className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
-        </div>
-      </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl sm:rounded-3xl shadow-lg border border-gray-200/50 p-4 sm:p-6 mb-6 sm:mb-8">
         <div className="flex flex-col md:flex-row md:items-center gap-3 sm:gap-4">
@@ -285,32 +292,33 @@ const ViewMonthlyTasks = () => {
         )}
       </div>
 
-      {pagination.pages > 1 && (
-        <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-4">
-          <div className="text-sm text-gray-600">
-            Page {pagination.page} of {pagination.pages}
+        {pagination.pages > 1 && (
+          <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-4">
+            <div className="text-sm text-gray-600">
+              Page {pagination.page} of {pagination.pages}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+                disabled={pagination.page <= 1}
+                className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <FiChevronLeft className="w-4 h-4" />
+                Previous
+              </button>
+              <button
+                onClick={() => setPage((currentPage) => Math.min(pagination.pages, currentPage + 1))}
+                disabled={pagination.page >= pagination.pages}
+                className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                Next
+                <FiChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
-              disabled={pagination.page <= 1}
-              className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <FiChevronLeft className="w-4 h-4" />
-              Previous
-            </button>
-            <button
-              onClick={() => setPage((currentPage) => Math.min(pagination.pages, currentPage + 1))}
-              disabled={pagination.page >= pagination.pages}
-              className="px-4 py-2 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              Next
-              <FiChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 };
 
