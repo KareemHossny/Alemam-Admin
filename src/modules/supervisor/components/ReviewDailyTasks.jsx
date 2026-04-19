@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiEye, FiCalendar, FiArrowLeft, FiCheckCircle, FiClock, FiAlertCircle, FiEdit, FiUser } from 'react-icons/fi';
 import { supervisorAPI } from '../utils/api';
+import getErrorMessage from '../../../shared/utils/getErrorMessage';
 
 const getLocalDateInputValue = () => (
   new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
@@ -52,7 +53,7 @@ const ReviewDailyTasks = () => {
       const taskPage = await supervisorAPI.getDailyTasks(projectId, selectedDate);
       setTasks(taskPage.data || []);
     } catch (err) {
-      console.error('Error fetching tasks:', err);
+      setMessage(getErrorMessage(err, 'تعذر تحميل المهام لهذا التاريخ.'));
       setTasks([]);
     }
   }, [projectId, selectedDate]);

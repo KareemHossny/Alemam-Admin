@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiEye, FiCalendar, FiArrowLeft, FiCheckCircle, FiClock, FiAlertCircle, FiEdit, FiUser, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { supervisorAPI } from '../utils/api';
+import getErrorMessage from '../../../shared/utils/getErrorMessage';
 
 const DEFAULT_LIMIT = 10;
 
@@ -77,7 +78,7 @@ const ReviewMonthlyTasks = () => {
       setTasks(taskPage.data || []);
       setPagination(taskPage.pagination || createEmptyPagination());
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      setMessage(getErrorMessage(error, 'تعذر تحميل المهام لهذا الشهر.'));
       setTasks([]);
       setPagination(createEmptyPagination());
     }

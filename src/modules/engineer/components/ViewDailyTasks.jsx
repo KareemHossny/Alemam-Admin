@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiEye, FiCalendar, FiArrowLeft, FiCheckCircle, FiClock, FiAlertCircle, FiTrash2, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { engineerAPI } from '../utils/api';
+import getErrorMessage from '../../../shared/utils/getErrorMessage';
 
 const DEFAULT_LIMIT = 10;
 
@@ -68,7 +69,7 @@ const ViewDailyTasks = () => {
         setTasks(taskPage.data || []);
         setPagination(taskPage.pagination || createEmptyPagination());
       } catch (error) {
-        console.error('Error fetching tasks:', error);
+        setMessage(getErrorMessage(error, 'Unable to load tasks for the selected date.'));
         setTasks([]);
         setPagination(createEmptyPagination());
       }

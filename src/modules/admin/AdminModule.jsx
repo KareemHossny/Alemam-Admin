@@ -1,11 +1,8 @@
 import React from 'react';
-import Dashboard from './components/Dashboard';
-import { useAuth } from '../../core/auth/useAuth';
+import AdminRoutes from './AdminRoutes';
 
 const AdminModule = () => {
-  const { clearSession } = useAuth();
-
-  return <Dashboard onLogout={clearSession} />;
+  return <AdminRoutes />;
 };
 
 export default AdminModule;

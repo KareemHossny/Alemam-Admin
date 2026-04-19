@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import {
-  FiMenu,
-  FiX,
-  FiLogOut,
-  FiEye,
-  FiUser,
   FiBarChart2,
   FiBriefcase,
   FiCheckCircle,
-  FiClock
+  FiClock,
+  FiEye,
+  FiLogOut,
+  FiMenu,
+  FiUser,
+  FiX,
 } from 'react-icons/fi';
-import ReviewTasks from './ReviewTasks';
 import ReviewDailyTasks from './ReviewDailyTasks';
 import ReviewMonthlyTasks from './ReviewMonthlyTasks';
+import ReviewTasks from './ReviewTasks';
 import { supervisorAPI } from '../utils/api';
+import ErrorState from '../../../shared/components/ErrorState';
+import StatusBanner from '../../../shared/components/StatusBanner';
+import getErrorMessage from '../../../shared/utils/getErrorMessage';
 
 const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -22,53 +25,48 @@ const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
     totalProjects: 0,
     pendingReviews: 0,
     reviewedTasks: 0,
-    totalEngineers: 0
+    totalEngineers: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [statsError, setStatsError] = useState('');
+  const [actionError, setActionError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
   const fetchStats = async () => {
     try {
+      setLoading(true);
+      setStatsError('');
       const dashboardStats = await supervisorAPI.getDashboardStats();
-      
+
       setStats({
         totalProjects: dashboardStats.totalProjects || 0,
         pendingReviews: dashboardStats.pendingReviews || 0,
         reviewedTasks: dashboardStats.reviewedTasks || 0,
-        totalEngineers: dashboardStats.totalEngineers || 0
+        totalEngineers: dashboardStats.totalEngineers || 0,
       });
-
-      // جمع البيانات من جميع المشاريع
-          // عد المهام
-          
-          
-          // جمع المهندسين
-
-
-      // انتظر اكتمال جميع الـ promises
-
-      // جمع النتائج
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      setStatsError(getErrorMessage(error, 'تعذر تحميل ملخص لوحة التحكم الآن.'));
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
   const handleLogout = async () => {
     try {
+      setActionError('');
       await supervisorAPI.logout();
     } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      onLogout();
-      navigate('/login');
+      setActionError(getErrorMessage(error, 'تعذر تسجيل الخروج الآن. حاول مرة أخرى.'));
+      return;
     }
+
+    onLogout();
+    navigate('/login');
   };
 
   const menuItems = [
@@ -76,7 +74,7 @@ const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
       path: '/supervisor/review-tasks',
       label: 'مراجعة المهام',
       icon: FiEye,
-      description: 'مراجعة المهام اليومية والشهرية'
+      description: 'راجع المهام اليومية والشهرية',
     },
   ];
 
@@ -84,26 +82,24 @@ const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-50 to-gray-100 flex" dir="rtl">
-      {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 right-0 z-50 w-80 bg-white/95 backdrop-blur-2xl shadow-2xl border-l border-gray-200/60 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
           sidebarOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
-          <div 
+          <div
             className="p-4 sm:p-7 border-b border-gray-200/60 cursor-pointer hover:bg-gray-50 transition-colors"
             onClick={() => navigate('/supervisor')}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 sm:gap-4">
-                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-r from-green-600 to-green-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-white font-bold text-sm sm:text-lg shadow-xl">
+                <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-r from-green-600 to-green-700 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-xl">
                   <FiUser className="w-4 h-4 sm:w-6 sm:h-6" />
                 </div>
                 <div className="flex flex-col">
                   <h1 className="text-lg sm:text-2xl font-extrabold text-gray-800 leading-tight">بوابة المشرفين</h1>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">نظام إدارة المهام</p>
+                  <p className="text-xs sm:text-sm text-gray-500 mt-1 font-medium">إدارة المراجعات والمهام</p>
                 </div>
               </div>
               <button
@@ -115,11 +111,11 @@ const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
             </div>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 p-4 sm:p-7 space-y-2 sm:space-y-3">
             {menuItems.map((item) => {
               const IconComponent = item.icon;
               const active = isActive(item.path);
+
               return (
                 <Link
                   key={item.path}
@@ -131,18 +127,16 @@ const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
-                  <IconComponent className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 group-hover:scale-110 ${
-                    active ? 'text-white' : 'text-green-600'
-                  }`} />
+                  <IconComponent
+                    className={`w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-300 group-hover:scale-110 ${
+                      active ? 'text-white' : 'text-green-600'
+                    }`}
+                  />
                   <div className="flex-1 text-right">
-                    <div className={`font-semibold text-base sm:text-lg transition-colors ${
-                      active ? 'text-white' : 'text-gray-900'
-                    }`}>
+                    <div className={`font-semibold text-base sm:text-lg ${active ? 'text-white' : 'text-gray-900'}`}>
                       {item.label}
                     </div>
-                    <div className={`text-xs sm:text-sm transition-colors ${
-                      active ? 'text-green-100' : 'text-gray-500'
-                    }`}>
+                    <div className={`text-xs sm:text-sm ${active ? 'text-green-100' : 'text-gray-500'}`}>
                       {item.description}
                     </div>
                   </div>
@@ -151,7 +145,6 @@ const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
             })}
           </nav>
 
-          {/* Logout Button */}
           <div className="p-4 sm:p-7 border-t border-gray-200/60">
             <button
               onClick={handleLogout}
@@ -164,9 +157,7 @@ const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
         <header className="bg-white/90 backdrop-blur-2xl border-b border-gray-200/60 shadow-sm sticky top-0 z-30">
           <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
             <div className="flex items-center gap-3 sm:gap-4">
@@ -176,23 +167,19 @@ const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
               >
                 <FiMenu className="w-5 h-5 sm:w-7 sm:h-7 text-gray-600" />
               </button>
-              <div className="lg:block text-right">
+              <div className="text-right">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-800">
-                  {location.pathname === '/supervisor' ? 'لوحة التحكم' :
-                   location.pathname.includes('review-tasks') ? 'مراجعة المهام' :
-                   location.pathname.includes('review-daily') ? 'مراجعة المهام اليومية' : 
-                   location.pathname.includes('review-monthly') ? 'مراجعة المهام الشهرية' : 'لوحة التحكم'}
+                  {location.pathname === '/supervisor' ? 'لوحة التحكم' : 'مراجعة المهام'}
                 </h1>
                 <p className="text-gray-500 text-sm sm:text-base lg:text-lg font-medium">
-                  إدارة المهام ومراجعات الفريق بكفاءة
+                  راقب التقدم، وراجع المهام، وتابع فريقك بكفاءة
                 </p>
               </div>
             </div>
-            
-            {/* Logout Button in Header */}
+
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 text-red-700 hover:bg-rose-50 hover:text-rose-700 rounded-xl sm:rounded-2xl transition-all duration-300 group border border-red-200 hover:border-rose-200 font-semibold shadow-sm text-sm sm:text-base"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-3 text-red-700 hover:bg-rose-50 rounded-xl sm:rounded-2xl transition-all duration-300 group border border-red-200 hover:border-rose-200 font-semibold shadow-sm text-sm sm:text-base"
             >
               <FiLogOut className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" />
               <span className="hidden xs:block">تسجيل الخروج</span>
@@ -200,99 +187,103 @@ const SupervisorDashboard = ({ onLogout, supervisorInfo }) => {
           </div>
         </header>
 
-        {/* Page Content */}
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 bg-transparent">
+          <StatusBanner
+            message={actionError}
+            variant="error"
+            className="mb-4 sm:mb-6"
+          />
           <Routes>
             <Route path="review-tasks" element={<ReviewTasks />} />
             <Route path="review-daily-tasks/:projectId" element={<ReviewDailyTasks />} />
             <Route path="review-monthly-tasks/:projectId" element={<ReviewMonthlyTasks />} />
-            <Route index element={<SupervisorWelcomeSection stats={stats} loading={loading} supervisorInfo={supervisorInfo} />} />
+            <Route
+              index
+              element={(
+                <SupervisorWelcomeSection
+                  stats={stats}
+                  loading={loading}
+                  statsError={statsError}
+                  onRetry={fetchStats}
+                  supervisorInfo={supervisorInfo}
+                />
+              )}
+            />
           </Routes>
         </main>
       </div>
 
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
+      {sidebarOpen ? (
         <div
           className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
-      )}
+      ) : null}
     </div>
   );
 };
 
-// Welcome Section for Supervisor
-const SupervisorWelcomeSection = ({ stats, loading, supervisorInfo }) => {
+const SupervisorWelcomeSection = ({ stats, loading, statsError, onRetry, supervisorInfo }) => {
   return (
     <div className="max-w-7xl mx-auto w-full" dir="rtl">
-      {/* Welcome Header */}
       <div className="text-center mb-8 sm:mb-12 lg:mb-16 px-2">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-extrabold text-gray-800 mb-3 sm:mb-4 leading-tight">
           أهلاً بعودتك،{' '}
           <span className="bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
             {supervisorInfo?.name || 'المشرف'}
           </span>
-          . 👋
         </h1>
         <p className="text-base sm:text-lg lg:text-xl xl:text-2xl text-gray-600 max-w-3xl mx-auto font-medium leading-relaxed">
-          هنا يمكنك مراجعة مهام الفريق ومتابعة تقدم المشاريع تحت إشرافك.
+          راقب المهام التي تحتاج مراجعة وتابع تقدم المشاريع التي تقع تحت إشرافك.
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12 lg:mb-16 px-2">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-green-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
-            <FiBriefcase className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-green-600" />
-          </div>
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
-            {loading ? '...' : stats.totalProjects}
-          </h3>
-          <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">المشاريع</p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">تحت إشرافك</p>
+      {statsError ? (
+        <ErrorState
+          title="تعذر تحميل ملخص لوحة التحكم"
+          message={statsError}
+          onRetry={onRetry}
+          retryLabel="إعادة تحميل الملخص"
+          className="mb-8 sm:mb-12 lg:mb-16"
+        />
+      ) : (
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12 lg:mb-16 px-2">
+          <StatCard
+            icon={FiBriefcase}
+            value={loading ? '...' : stats.totalProjects}
+            label="المشاريع"
+            caption="التي تشرف عليها"
+            accent="green"
+          />
+          <StatCard
+            icon={FiClock}
+            value={loading ? '...' : stats.pendingReviews}
+            label="بانتظار المراجعة"
+            caption="تحتاج إلى انتباهك"
+            accent="orange"
+          />
+          <StatCard
+            icon={FiCheckCircle}
+            value={loading ? '...' : stats.reviewedTasks}
+            label="تمت مراجعتها"
+            caption="مهام اكتملت مراجعتها"
+            accent="blue"
+          />
+          <StatCard
+            icon={FiUser}
+            value={loading ? '...' : stats.totalEngineers}
+            label="المهندسون"
+            caption="العاملون على مشاريعك"
+            accent="purple"
+          />
         </div>
+      )}
 
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-orange-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
-            <FiClock className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-orange-600" />
-          </div>
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
-            {loading ? '...' : stats.pendingReviews}
-          </h3>
-          <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">مهام بانتظار المراجعة</p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">تتطلب انتباهك</p>
-        </div>
-
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-blue-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
-            <FiCheckCircle className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-blue-600" />
-          </div>
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
-            {loading ? '...' : stats.reviewedTasks}
-          </h3>
-          <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">مهام تمت مراجعتها</p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">مكتملة المراجعة</p>
-        </div>
-
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-purple-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
-            <FiUser className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-purple-600" />
-          </div>
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
-            {loading ? '...' : stats.totalEngineers}
-          </h3>
-          <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">المهندسين</p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">مديرون مشاريعك</p>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
       <div className="max-w-5xl mx-auto px-2">
         <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8">
           <h3 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-800 mb-4 sm:mb-6 lg:mb-8 flex items-center gap-2 sm:gap-3 lg:gap-4">
             <FiBarChart2 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-green-600" />
-            الإجراءات السريعة
+            إجراءات سريعة
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <Link
@@ -304,12 +295,42 @@ const SupervisorWelcomeSection = ({ stats, loading, supervisorInfo }) => {
               </div>
               <div className="text-right flex-1">
                 <div className="text-lg sm:text-xl lg:text-2xl font-bold transition-colors">مراجعة المهام</div>
-                <div className="text-gray-600 text-sm sm:text-base lg:text-lg mt-1">مراجعة المهام اليومية والشهرية</div>
+                <div className="text-gray-600 text-sm sm:text-base lg:text-lg mt-1">اطلع على المهام اليومية والشهرية الخاصة بالفريق</div>
               </div>
             </Link>
           </div>
         </div>
       </div>
+    </div>
+  );
+};
+
+const ACCENT_STYLES = {
+  green: {
+    card: 'bg-green-100 text-green-600',
+  },
+  orange: {
+    card: 'bg-orange-100 text-orange-600',
+  },
+  blue: {
+    card: 'bg-blue-100 text-blue-600',
+  },
+  purple: {
+    card: 'bg-purple-100 text-purple-600',
+  },
+};
+
+const StatCard = ({ icon: Icon, value, label, caption, accent }) => {
+  const accentStyles = ACCENT_STYLES[accent] || ACCENT_STYLES.green;
+
+  return (
+    <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
+      <div className={`w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6 ${accentStyles.card}`}>
+        <Icon className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />
+      </div>
+      <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">{value}</h3>
+      <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">{label}</p>
+      <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">{caption}</p>
     </div>
   );
 };

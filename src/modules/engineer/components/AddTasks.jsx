@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiPlus, FiBriefcase, FiCalendar } from 'react-icons/fi';
 import { engineerAPI } from '../utils/api';
+import ErrorState from '../../../shared/components/ErrorState';
+import SectionLoader from '../../../shared/components/SectionLoader';
+import getErrorMessage from '../../../shared/utils/getErrorMessage';
 
 const AddTasks = () => {
   const [projects, setProjects] = useState([]);
@@ -14,44 +17,29 @@ const AddTasks = () => {
 
   const fetchProjects = async () => {
     try {
+      setLoading(true);
+      setError('');
       const projectList = await engineerAPI.getMyProjects();
       setProjects(projectList);
     } catch (err) {
-      setError(err.message || 'Failed to load projects');
-      console.error('Error fetching projects:', err);
+      setError(getErrorMessage(err, 'Unable to load your projects right now.'));
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8 sm:py-12">
-        <div className="flex flex-col items-center space-y-3 sm:space-y-4">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-600 text-sm sm:text-base">Loading your projects...</p>
-        </div>
-      </div>
-    );
+    return <SectionLoader label="Loading your projects..." />;
   }
 
   if (error) {
     return (
-      <div className="flex justify-center items-center py-8 sm:py-12">
-        <div className="text-center">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-rose-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
-            <FiBriefcase className="w-6 h-6 sm:w-8 sm:h-8 text-rose-600" />
-          </div>
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Error Loading Projects</h3>
-          <p className="text-gray-600 text-sm sm:text-base mb-3 sm:mb-4">{error}</p>
-          <button 
-            onClick={fetchProjects}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 rounded-xl font-semibold text-sm sm:text-base"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
+      <ErrorState
+        title="Projects unavailable"
+        message={error}
+        onRetry={fetchProjects}
+        retryLabel="Reload projects"
+      />
     );
   }
 

@@ -5,6 +5,7 @@ import UnifiedLoginPage from '../modules/auth/pages/UnifiedLoginPage';
 import AdminModule from '../modules/admin/AdminModule';
 import EngineerModule from '../modules/engineer/EngineerModule';
 import SupervisorModule from '../modules/supervisor/SupervisorModule';
+import LandingPage from '../modules/landing/pages/LandingPage';
 import GuestRoute from './GuestRoute';
 import ProtectedRoute from './ProtectedRoute';
 import RoleHomeRedirect from './RoleHomeRedirect';
@@ -13,7 +14,8 @@ const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<RoleHomeRedirect />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/workspace" element={<RoleHomeRedirect />} />
         <Route
           path="/login"
           element={(
@@ -48,7 +50,7 @@ const AppRouter = () => {
             </ProtectedRoute>
           )}
         />
-        <Route path="*" element={<RoleHomeRedirect />} />
+        <Route path="*" element={<LandingPage />} />
       </Routes>
     </BrowserRouter>
   );

@@ -17,6 +17,9 @@ import ViewTasks from './ViewTasks';
 import ViewDailyTasks from './ViewDailyTasks';
 import ViewMonthlyTasks from './ViewMonthlyTasks';
 import { engineerAPI } from '../utils/api';
+import ErrorState from '../../../shared/components/ErrorState';
+import StatusBanner from '../../../shared/components/StatusBanner';
+import getErrorMessage from '../../../shared/utils/getErrorMessage';
 
 const EngineerDashboard = ({ onLogout, engineerInfo }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -27,6 +30,8 @@ const EngineerDashboard = ({ onLogout, engineerInfo }) => {
     totalTasks: 0
   });
   const [loading, setLoading] = useState(true);
+  const [statsError, setStatsError] = useState('');
+  const [actionError, setActionError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -36,6 +41,8 @@ const EngineerDashboard = ({ onLogout, engineerInfo }) => {
 
   const fetchStats = async () => {
     try {
+      setLoading(true);
+      setStatsError('');
       const dashboardStats = await engineerAPI.getDashboardStats();
       
       setStats({
@@ -48,7 +55,7 @@ const EngineerDashboard = ({ onLogout, engineerInfo }) => {
 
           // استخدام for...of بدلاً من forEach لتجنب مشاكل الإغلاق
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      setStatsError(getErrorMessage(error, 'Unable to load your dashboard summary right now.'));
     } finally {
       setLoading(false);
     }
@@ -56,13 +63,15 @@ const EngineerDashboard = ({ onLogout, engineerInfo }) => {
 
   const handleLogout = async () => {
     try {
+      setActionError('');
       await engineerAPI.logout();
     } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      onLogout();
-      navigate('/login');
+      setActionError(getErrorMessage(error, 'Unable to log out right now. Please try again.'));
+      return;
     }
+
+    onLogout();
+    navigate('/login');
   };
 
   const menuItems = [
@@ -193,6 +202,11 @@ const EngineerDashboard = ({ onLogout, engineerInfo }) => {
 
         {/* Page Content */}
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 bg-transparent">
+          <StatusBanner
+            message={actionError}
+            variant="error"
+            className="mb-4 sm:mb-6"
+          />
           <Routes>
             <Route path="add-tasks" element={<AddTasks />} />
             <Route path="add-daily-task/:projectId" element={<AddDailyTask />} />
@@ -200,7 +214,18 @@ const EngineerDashboard = ({ onLogout, engineerInfo }) => {
             <Route path="view-tasks" element={<ViewTasks />} />
             <Route path="view-daily-tasks/:projectId" element={<ViewDailyTasks />} />
             <Route path="view-monthly-tasks/:projectId" element={<ViewMonthlyTasks />} />
-            <Route index element={<EngineerWelcomeSection stats={stats} loading={loading} engineerInfo={engineerInfo} />} />
+            <Route
+              index
+              element={(
+                <EngineerWelcomeSection
+                  stats={stats}
+                  loading={loading}
+                  statsError={statsError}
+                  onRetry={fetchStats}
+                  engineerInfo={engineerInfo}
+                />
+              )}
+            />
           </Routes>
         </main>
       </div>
@@ -217,7 +242,7 @@ const EngineerDashboard = ({ onLogout, engineerInfo }) => {
 };
 
 // Welcome Section for Engineer
-const EngineerWelcomeSection = ({ stats, loading, engineerInfo }) => {
+const EngineerWelcomeSection = ({ stats, loading, statsError, onRetry, engineerInfo }) => {
   return (
     <div className="max-w-7xl mx-auto w-full px-2 sm:px-4">
       {/* Welcome Header */}
@@ -234,52 +259,61 @@ const EngineerWelcomeSection = ({ stats, loading, engineerInfo }) => {
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12 lg:mb-16">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-blue-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
-            <FiBriefcase className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-blue-600" />
+      {statsError ? (
+        <ErrorState
+          title="Dashboard summary unavailable"
+          message={statsError}
+          onRetry={onRetry}
+          retryLabel="Retry summary"
+          className="mb-8 sm:mb-12 lg:mb-16"
+        />
+      ) : (
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 mb-8 sm:mb-12 lg:mb-16">
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-blue-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
+              <FiBriefcase className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-blue-600" />
+            </div>
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
+              {loading ? '...' : stats.totalProjects}
+            </h3>
+            <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">Total Projects</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Assigned to you</p>
           </div>
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
-            {loading ? '...' : stats.totalProjects}
-          </h3>
-          <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">Total Projects</p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Assigned to you</p>
-        </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-orange-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
-            <FiBarChart2 className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-orange-600" />
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-orange-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
+              <FiBarChart2 className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-orange-600" />
+            </div>
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
+              {loading ? '...' : stats.pendingTasks}
+            </h3>
+            <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">Pending Tasks</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Awaiting review</p>
           </div>
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
-            {loading ? '...' : stats.pendingTasks}
-          </h3>
-          <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">Pending Tasks</p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Awaiting review</p>
-        </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-green-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
-            <FiBarChart2 className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-green-600" />
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-green-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
+              <FiBarChart2 className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-green-600" />
+            </div>
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
+              {loading ? '...' : stats.completedTasks}
+            </h3>
+            <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">Completed Tasks</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Approved by supervisors</p>
           </div>
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
-            {loading ? '...' : stats.completedTasks}
-          </h3>
-          <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">Completed Tasks</p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">Approved by supervisors</p>
-        </div>
 
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-purple-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
-            <FiBarChart2 className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-purple-600" />
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200/60 p-4 sm:p-6 lg:p-8 text-center hover:scale-105 transition-transform duration-300">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 bg-purple-100 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 lg:mb-6">
+              <FiBarChart2 className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-purple-600" />
+            </div>
+            <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
+              {loading ? '...' : stats.totalTasks}
+            </h3>
+            <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">Total Tasks</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">All time tasks</p>
           </div>
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-800 mb-2 sm:mb-3">
-            {loading ? '...' : stats.totalTasks}
-          </h3>
-          <p className="text-sm sm:text-base lg:text-xl text-gray-600 font-semibold">Total Tasks</p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 sm:mt-2">All time tasks</p>
         </div>
-      </div>
+      )}
 
       {/* Quick Actions */}
       <div className="max-w-5xl mx-auto">
